@@ -16,7 +16,7 @@ export function formatMarkdownNode(node: React.ReactNode): React.ReactNode {
       if (part.startsWith("**") && part.endsWith("**")) {
         return React.createElement(
           "strong",
-          { key: index, className: "font-extrabold text-[#FAFAFA]" },
+          { key: index, className: "font-extrabold text-current" },
           part.slice(2, -2)
         );
       }

@@ -165,10 +165,108 @@ export default function ContainerLifecycle() {
                   status={activeStateId === "removed" ? "running" : "idle"}
                   icon={<Trash2 className="w-4 h-4 text-zinc-650" />}
                   className="py-2 px-3 rounded-[9px]"
-                />
+                 />
               </div>
 
             </div>
+          </div>
+
+          {/* Living Container Simulator */}
+          <div className="mt-8 border-t border-zinc-800/40 pt-6 w-full flex flex-col items-center justify-center gap-2 select-text font-sans">
+            <style>{`
+              @keyframes barGrow {
+                0%, 100% { transform: scaleY(0.3); }
+                50% { transform: scaleY(1); }
+              }
+              .animate-bar-grow {
+                animation: barGrow 1.2s ease-in-out infinite;
+                transform-origin: bottom;
+              }
+            `}</style>
+            
+            <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-zinc-550 mb-1">
+              Active Container Runtime Simulation
+            </span>
+
+            {activeStateId === "removed" ? (
+              <div className="h-28 w-64 border border-dashed border-red-500/20 bg-red-950/5 rounded-[12px] flex flex-col items-center justify-center text-center gap-2 animate-pulse">
+                <Trash2 className="w-6 h-6 text-red-500/60" />
+                <div>
+                  <span className="text-[10px] font-bold text-red-400 block uppercase tracking-wider font-mono">[DESTROYED]</span>
+                  <span className="text-[8.5px] text-zinc-500 block mt-0.5 max-w-[200px]">Writable layer and namespace parameters fully removed.</span>
+                </div>
+              </div>
+            ) : (
+              <div className={cn(
+                "h-28 w-64 rounded-[14px] bg-[#0d0d0e] border p-4 flex flex-col justify-between transition-all duration-300 relative shadow-inner",
+                activeStateId === "created" && "border-zinc-800 opacity-60",
+                activeStateId === "running" && "border-zinc-500 shadow-[0_0_8px_rgba(255,255,255,0.05)]",
+                activeStateId === "paused" && "border-yellow-900/40 opacity-75 animate-pulse",
+                activeStateId === "stopped" && "border-zinc-900 opacity-40"
+              )}>
+                
+                {/* Header */}
+                <div className="flex justify-between items-center border-b border-zinc-850/40 pb-1.5">
+                  <span className="text-[9px] font-bold text-white font-mono flex items-center gap-1.5">
+                    <span className={cn(
+                      "w-1.5 h-1.5 rounded-full",
+                      activeStateId === "created" && "bg-zinc-650",
+                      activeStateId === "running" && "bg-white animate-pulse",
+                      activeStateId === "paused" && "bg-yellow-500 animate-ping",
+                      activeStateId === "stopped" && "bg-zinc-800"
+                    )} />
+                    nginx-container
+                  </span>
+                  <span className={cn(
+                    "text-[7px] font-mono font-bold uppercase py-0.5 px-1.5 rounded-[4px] border",
+                    activeStateId === "created" && "border-zinc-800 text-zinc-550 bg-zinc-900/10",
+                    activeStateId === "running" && "border-white/10 bg-white/5 text-white",
+                    activeStateId === "paused" && "border-yellow-500/20 bg-yellow-950/20 text-yellow-405",
+                    activeStateId === "stopped" && "border-zinc-900 text-zinc-700 bg-zinc-950/10"
+                  )}>
+                    {activeStateId === "created" && "Dormant"}
+                    {activeStateId === "running" && "Running"}
+                    {activeStateId === "paused" && "Paused"}
+                    {activeStateId === "stopped" && "Stopped"}
+                  </span>
+                </div>
+
+                {/* Heartbeat / CPU Wave representation */}
+                <div className="flex items-end gap-1.5 flex-1 justify-center my-1.5 h-8">
+                  {activeStateId === "running" ? (
+                    [3, 5, 8, 4, 9, 6, 2, 7, 5, 3].map((h, i) => (
+                      <div 
+                        key={i} 
+                        className="w-[3px] bg-white rounded-t-full animate-bar-grow"
+                        style={{ 
+                          height: "100%",
+                          animationDelay: `${i * 0.08}s` 
+                        }} 
+                      />
+                    ))
+                  ) : activeStateId === "paused" ? (
+                    [4, 4, 4, 4, 4, 4, 4, 4, 4, 4].map((h, i) => (
+                      <div 
+                        key={i} 
+                        className="w-[3px] bg-yellow-500/60 rounded-t-full" 
+                        style={{ height: "40%" }}
+                      />
+                    ))
+                  ) : (
+                    <div className="w-full h-px bg-zinc-900/80 relative self-center">
+                      <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[6.5px] uppercase tracking-widest font-mono text-zinc-700 select-none">No Process Active</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Subtitle */}
+                <div className="text-[7.5px] font-mono text-zinc-550 flex justify-between select-none">
+                  <span>PID 1: nginx -g daemon off;</span>
+                  <span>CPU: {activeStateId === "running" ? "1.2%" : "0.0%"}</span>
+                </div>
+
+              </div>
+            )}
           </div>
 
         </div>

@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Layers, Box, Play, Trash2, Edit3, HelpCircle, ArrowRight, ShieldCheck, CheckCircle } from "lucide-react";
+import { Layers, Box, Play, Trash2, Edit3, HelpCircle, ShieldCheck, CheckCircle, RotateCcw } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
-import { NodePrimitive } from "@/components/primitives/NodePrimitive";
 
 interface InstanceItem {
   id: string;
@@ -40,17 +39,20 @@ export default function ImageVsContainer() {
     setInstances(prev => prev.filter(inst => inst.id !== id));
   };
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setInstances([
       { id: "A", name: "container-A", status: "running" as const },
       { id: "B", name: "container-B", status: "running" as const }
     ]);
-  };
+  }, []);
 
   return (
     <VisualCanvas
       objective="Compare the structural differences between an immutable Image Blueprint and temporary, running Container Instances."
       timeline={null}
+      onStepBack={handleReset}
+      zoomScale={0.88}
+      fullscreenZoomScale={1.2}
       explanation={
         <div className="flex flex-col gap-2.5 font-sans">
           <div className="flex items-center gap-1.5 font-bold text-zinc-200">
@@ -68,103 +70,127 @@ export default function ImageVsContainer() {
     >
       <div className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
         
-        {/* Graph Sandbox (Left) */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px] overflow-hidden">
+        {/* Sandbox Canvas (Left) */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[380px] overflow-hidden">
           
-          {/* Split comparison cards */}
-          <div className="grid grid-cols-2 gap-4 w-full max-w-md mb-6">
-            {/* Image blueprint card */}
-            <div className="p-3 bg-[#0d0d0e]/60 rounded-[12px] border border-zinc-850 flex flex-col gap-1.5 shadow-inner">
-              <span className="text-[7.5px] font-mono font-bold uppercase tracking-wider text-zinc-500">
-                Passive Blueprint
-              </span>
-              <span className="text-[10px] font-extrabold text-white flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5 text-zinc-400" />
-                Docker Image
-              </span>
-              <ul className="text-[8.5px] text-zinc-450 flex flex-col gap-0.5 mt-1 list-none font-semibold">
-                <li>• 100% Read-Only</li>
-                <li>• Reusable Template</li>
-                <li>• Immutable & Static</li>
-                <li>• Shares Base Layers</li>
-              </ul>
-            </div>
-
-            {/* Container instance card */}
-            <div className="p-3 bg-[#0d0d0e]/60 rounded-[12px] border border-zinc-850 flex flex-col gap-1.5 shadow-inner">
-              <span className="text-[7.5px] font-mono font-bold uppercase tracking-wider text-zinc-550">
-                Running Instance
-              </span>
-              <span className="text-[10px] font-extrabold text-white flex items-center gap-1 font-sans">
-                <Box className="w-3.5 h-3.5 text-white animate-pulse" />
-                Active Container
-              </span>
-              <ul className="text-[8.5px] text-zinc-450 flex flex-col gap-0.5 mt-1 list-none font-semibold">
-                <li>• Writable верхDir</li>
-                <li>• Isolated process tree</li>
-                <li>• Temporary runtime</li>
-                <li>• Unique network ports</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Interactive Relationship Graph */}
-          <div className="w-full max-w-sm flex items-center justify-between gap-6 relative min-h-[120px]">
+          <div className="w-full max-w-lg flex flex-col sm:flex-row items-stretch justify-between gap-8 relative min-h-[300px]">
             
-            {/* Background connection links */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 hidden sm:block">
-              {instances.map((c, i) => {
-                const yTarget = (instances.length === 1) ? 60 : (instances.length === 2) ? (i === 0 ? 36 : 84) : (i === 0 ? 12 : i === 1 ? 60 : 108);
-                return (
-                  <line
-                    key={c.id}
-                    x1={80}
-                    y1={60}
-                    x2={240}
-                    y2={yTarget}
-                    stroke={c.status === "modified" ? "#FAFAFA" : "#1f1f23"}
-                    strokeWidth={c.status === "modified" ? 1.5 : 1}
-                    className="transition-all duration-300"
-                  />
-                );
-              })}
-            </svg>
-
-            {/* Image Node */}
-            <div className="w-32 z-10 shrink-0">
-              <NodePrimitive
-                label="app-image"
-                status="idle"
-                icon={<Layers className="w-3.5 h-3.5 text-zinc-300" />}
-                className="py-2.5 rounded-[9px] bg-[#0d0d0e] border-zinc-850"
-              />
+            {/* Left: Stacked Image blueprint */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-zinc-550">
+                Shared Image Blueprint
+              </span>
+              
+              {/* Stacked tower of image layers */}
+              <div className="flex flex-col gap-1 w-full max-w-[150px] relative">
+                {/* Layer 3 */}
+                <div className="h-[36px] bg-[#1a1a20] border border-zinc-800 rounded-[8px] flex items-center justify-center px-3 relative shadow-sm">
+                  <span className="text-[8.5px] font-mono text-zinc-300 font-bold">App Code (Layer 3)</span>
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[6px] uppercase tracking-wider text-zinc-550 font-sans font-bold">R/O</span>
+                </div>
+                {/* Layer 2 */}
+                <div className="h-[36px] bg-[#16161c] border border-zinc-850 rounded-[8px] flex items-center justify-center px-3 relative shadow-sm">
+                  <span className="text-[8.5px] font-mono text-zinc-400">Node Modules (Layer 2)</span>
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[6px] uppercase tracking-wider text-zinc-550 font-sans font-bold">R/O</span>
+                </div>
+                {/* Layer 1 */}
+                <div className="h-[36px] bg-[#111116] border border-zinc-900 rounded-[8px] flex items-center justify-center px-3 relative shadow-sm">
+                  <span className="text-[8.5px] font-mono text-zinc-550">Base Linux OS (Layer 1)</span>
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[6px] uppercase tracking-wider text-zinc-650 font-sans font-bold">R/O</span>
+                </div>
+                
+                {/* Shared blueprint label */}
+                <div className="mt-2 text-center select-none">
+                  <span className="text-[9px] font-bold text-white font-mono flex items-center justify-center gap-1">
+                    <Layers className="w-3.5 h-3.5 text-zinc-400" />
+                    node-app:latest
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Containers Stack Node */}
-            <div className="w-40 flex flex-col gap-2 min-h-[110px] justify-center shrink-0 z-10">
-              {instances.length > 0 ? (
-                instances.map((c, i) => {
-                  const isModified = c.status === "modified";
+            {/* Middle connecting vector lines overlay */}
+            <div className="hidden sm:block absolute left-[150px] right-[160px] top-0 bottom-0 pointer-events-none z-0">
+              <svg className="w-full h-full">
+                {instances.map((c, i) => {
+                  const yTarget = (instances.length === 1) ? 116 : (instances.length === 2) ? (i === 0 ? 56 : 176) : (i === 0 ? 30 : i === 1 ? 116 : 202);
                   return (
-                    <div key={c.id} className="animate-fadeIn">
-                      <NodePrimitive
-                        label={c.name}
-                        status={isModified ? "running" : "idle"}
-                        icon={<Box className="w-3.5 h-3.5 text-white" />}
-                        subtitle={isModified ? "Modified layer active" : "Pristine replica"}
-                        className={cn(
-                          "py-1 px-2.5 rounded-[8px] transition-all duration-300",
-                          isModified 
-                            ? "bg-white text-black border-transparent shadow-[0_0_8px_rgba(255,255,255,0.15)]"
-                            : "bg-[#0d0d0e]/60 border-zinc-850"
-                        )}
+                    <g key={c.id}>
+                      {/* Connection from top layer (App Code) */}
+                      <path 
+                        d={`M 10,98 C 50,98 50,${yTarget + 20} 90,${yTarget + 20}`} 
+                        fill="none" 
+                        stroke={c.status === "modified" ? "#ffffff" : "#1f1f23"} 
+                        strokeWidth={c.status === "modified" ? 1.5 : 1}
+                        strokeDasharray={c.status === "modified" ? "0" : "3"}
+                        className="transition-all duration-300"
                       />
-                    </div>
+                    </g>
                   );
-                })
-              ) : (
-                <span className="text-[9px] text-zinc-650 italic text-center font-mono">No instances running</span>
-              )}
+                })}
+              </svg>
+            </div>
+
+            {/* Right: Container process replica stack */}
+            <div className="flex-1 flex flex-col items-center justify-center gap-3">
+              <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-zinc-550">
+                Running Container Instances
+              </span>
+              
+              <div className="flex flex-col gap-3 w-full max-w-[160px] justify-center min-h-[220px]">
+                {instances.length > 0 ? (
+                  instances.map((c) => {
+                    const isModified = c.status === "modified";
+                    return (
+                      <div 
+                        key={c.id} 
+                        className={cn(
+                          "rounded-[12px] border p-2.5 flex flex-col gap-1.5 transition-all duration-300 shadow-inner",
+                          isModified 
+                            ? "border-zinc-500 bg-[#0d0d0e]" 
+                            : "border-zinc-850 bg-[#0d0d0e]/60"
+                        )}
+                      >
+                        {/* Container name */}
+                        <div className="flex justify-between items-center border-b border-zinc-900/60 pb-1">
+                          <span className="text-[8.5px] font-bold text-white font-mono flex items-center gap-1">
+                            <Box className="w-3.5 h-3.5 text-zinc-400" />
+                            {c.name}
+                          </span>
+                          <span className={cn(
+                            "text-[6.5px] font-bold uppercase tracking-wide",
+                            isModified ? "text-zinc-300 animate-pulse" : "text-zinc-650"
+                          )}>
+                            {isModified ? "Modified" : "Active"}
+                          </span>
+                        </div>
+                        
+                        {/* Visual stack representation */}
+                        <div className="flex flex-col gap-0.5">
+                          {/* Writable layer */}
+                          <div className={cn(
+                            "h-[12px] rounded-[3px] border flex items-center justify-center text-[6px] font-mono font-bold transition-all duration-300",
+                            isModified 
+                              ? "bg-white text-black border-transparent" 
+                              : "bg-[#0d0d0e]/80 border-dashed border-zinc-800 text-zinc-550"
+                          )}>
+                            {isModified ? "Writable layer: config.json (Overridden)" : "Writable layer (Empty)"}
+                          </div>
+                          {/* Immutable reference layer block */}
+                          <div className="h-[12px] rounded-[3px] bg-[#1a1a20]/30 border border-zinc-900/50 flex items-center justify-center text-[6px] font-mono text-zinc-600">
+                            Shared Read-Only layers
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="border border-dashed border-zinc-850 rounded-[12px] p-5 text-center text-[9px] text-zinc-650 italic bg-[#0d0d0e]/15 flex flex-col items-center justify-center gap-1.5">
+                    <Box className="w-5 h-5 text-zinc-750" />
+                    <span>No instances running</span>
+                  </div>
+                )}
+              </div>
             </div>
 
           </div>
@@ -227,17 +253,19 @@ export default function ImageVsContainer() {
           </div>
 
           {/* Verify statement */}
-          <div className="p-3.5 rounded-[12px] bg-[#0d0d0e] border border-zinc-800/25 text-[9px] text-zinc-450 leading-relaxed font-sans">
+          <div className="p-3.5 rounded-[12px] bg-[#0d0d0e] border border-zinc-800/25 text-[9px] text-zinc-455 leading-relaxed font-sans">
             <CheckCircle className="w-3.5 h-3.5 text-zinc-450 mb-1" />
             Deleting container nodes instantly updates the process tree list. Image blueprint layers remain completely unaffected.
           </div>
 
-          <button
-            onClick={handleReset}
-            className="w-full bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none"
-          >
-            Reset Sandbox
-          </button>
+          {instances.length > 0 && (
+            <button
+              onClick={handleReset}
+              className="w-full bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none"
+            >
+              Reset Sandbox
+            </button>
+          )}
 
         </div>
 
