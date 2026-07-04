@@ -63,6 +63,16 @@ export default function CommandFlow() {
   
   const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
   const handleReset = useCallback(() => {
     setIsPlayingSeq(false);
     setCurrentStepIndex(-1);
@@ -188,101 +198,108 @@ export default function CommandFlow() {
       <div ref={containerRef} className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none">
         
         {/* CLI/Socket/Daemon Playground (Left) */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[300px]">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[360px] md:min-h-[420px] w-full overflow-hidden">
           
-          {/* Centered relative playground workspace (fixed width to prevent layout shifts) */}
-          <div className="w-[470px] h-[140px] relative shrink-0">
-            
-            {/* Physical Unix Socket Conduit Pipe (centered vertically with the cards) */}
-            <div className="absolute left-[160px] w-[150px] top-[32px] h-[16px] border-t border-b border-zinc-800/80 bg-[#0b0b0c] rounded-[2px] flex items-center justify-center pointer-events-none z-0">
-              <div className="w-full h-0.5 border-t border-dashed border-zinc-800/60" />
-              <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[6.5px] font-bold text-zinc-550 uppercase tracking-wider font-mono">
-                docker.sock
-              </span>
-            </div>
+          {/* Scalable relative playground workspace */}
+          <div className={cn(
+            "origin-center transition-all duration-300 flex items-center justify-center shrink-0",
+            isFullscreen 
+              ? "scale-[1.4] md:scale-[1.6]" 
+              : "scale-[0.8] sm:scale-100 md:scale-[1.1] lg:scale-[1.25]"
+          )}>
+            <div className="w-[470px] h-[150px] relative shrink-0">
+              
+              {/* Physical Unix Socket Conduit Pipe (centered vertically with the cards) */}
+              <div className="absolute left-[160px] w-[150px] top-[32px] h-[16px] border-t border-b border-zinc-800/80 bg-[#0b0b0c] rounded-[2px] flex items-center justify-center pointer-events-none z-0">
+                <div className="w-full h-0.5 border-t border-dashed border-zinc-800/60" />
+                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[6.5px] font-bold text-zinc-550 uppercase tracking-wider font-mono">
+                  docker.sock
+                </span>
+              </div>
 
-            {/* Glowing Request/Response Capsule Packet Orb */}
-            <div
-              ref={socketPulseRef}
-              className="absolute left-[150px] top-[29px] px-2 py-0.5 rounded-full bg-white text-black text-[7px] font-bold font-mono shadow-[0_0_8px_rgba(255,255,255,0.75)] opacity-0 scale-0 z-20 pointer-events-none whitespace-nowrap flex items-center justify-center leading-none"
-            >
-              {packetLabel}
-            </div>
-
-            {/* Docker Client CLI Card (Left) */}
-            <div className="absolute left-0 top-0 w-40">
-              <NodePrimitive
-                label="Docker CLI"
-                type="laptop"
-                status={currentStepIndex >= 0 && activeCmdData.steps[currentStepIndex]?.source === "client" ? "running" : "idle"}
-                className="w-full"
+              {/* Glowing Request/Response Capsule Packet Orb */}
+              <div
+                ref={socketPulseRef}
+                className="absolute left-[150px] top-[29px] px-2 py-0.5 rounded-full bg-white text-black text-[7px] font-bold font-mono shadow-[0_0_8px_rgba(255,255,255,0.75)] opacity-0 scale-0 z-20 pointer-events-none whitespace-nowrap flex items-center justify-center leading-none"
               >
-                <div className="font-mono text-[9px] text-zinc-450 leading-relaxed bg-[#0d0d0e] p-2.5 rounded-[12px] border border-zinc-800/30 overflow-hidden flex flex-col justify-center min-h-[44px]">
-                  <div className="flex items-center gap-1">
-                    <span className="text-zinc-500">$</span>
-                    <span className="text-zinc-300 font-bold">
-                      {selectedCmdKey === "run" && "docker run"}
-                      {selectedCmdKey === "ps" && "docker ps"}
-                      {selectedCmdKey === "exec" && "docker exec"}
+                {packetLabel}
+              </div>
+
+              {/* Docker Client CLI Card (Left) */}
+              <div className="absolute left-0 top-0 w-40">
+                <NodePrimitive
+                  label="Docker CLI"
+                  type="laptop"
+                  status={currentStepIndex >= 0 && activeCmdData.steps[currentStepIndex]?.source === "client" ? "running" : "idle"}
+                  className="w-full"
+                >
+                  <div className="font-mono text-[9px] text-zinc-450 leading-relaxed bg-[#0d0d0e] p-2.5 rounded-[12px] border border-zinc-800/30 overflow-hidden flex flex-col justify-center min-h-[44px]">
+                    <div className="flex items-center gap-1">
+                      <span className="text-zinc-500">$</span>
+                      <span className="text-zinc-300 font-bold">
+                        {selectedCmdKey === "run" && "docker run"}
+                        {selectedCmdKey === "ps" && "docker ps"}
+                        {selectedCmdKey === "exec" && "docker exec"}
+                      </span>
+                    </div>
+                    <span className="text-[6.5px] text-zinc-500 font-mono mt-0.5">
+                      {currentStepIndex === 0 && "parsing arguments..."}
+                      {currentStepIndex === 1 && "sending payload..."}
+                      {currentStepIndex === 5 && "exiting cleanly..."}
+                      {currentStepIndex === -1 && "waiting..."}
                     </span>
                   </div>
-                  <span className="text-[6.5px] text-zinc-500 font-mono mt-0.5">
-                    {currentStepIndex === 0 && "parsing arguments..."}
-                    {currentStepIndex === 1 && "sending payload..."}
-                    {currentStepIndex === 5 && "exiting cleanly..."}
-                    {currentStepIndex === -1 && "waiting..."}
-                  </span>
-                </div>
-              </NodePrimitive>
-            </div>
+                </NodePrimitive>
+              </div>
 
-            {/* Docker Daemon Card (Right) */}
-            <div className="absolute right-0 top-0 w-40">
-              <NodePrimitive
-                label="Docker Daemon"
-                type="server"
-                status={currentStepIndex >= 0 && activeCmdData.steps[currentStepIndex]?.source === "daemon" ? "running" : "idle"}
-                className="w-full"
-              >
-                <div className="font-mono text-[9px] text-zinc-450 leading-relaxed bg-[#0d0d0e] p-2.5 rounded-[12px] border border-zinc-800/30 overflow-hidden flex flex-col gap-1 min-h-[44px]">
-                  <div className="text-zinc-300 font-bold flex justify-between items-center font-sans">
-                    <span>dockerd</span>
-                    {containerActive && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-200 animate-ping" />
-                    )}
+              {/* Docker Daemon Card (Right) */}
+              <div className="absolute right-0 top-0 w-40">
+                <NodePrimitive
+                  label="Docker Daemon"
+                  type="server"
+                  status={currentStepIndex >= 0 && activeCmdData.steps[currentStepIndex]?.source === "daemon" ? "running" : "idle"}
+                  className="w-full"
+                >
+                  <div className="font-mono text-[9px] text-zinc-450 leading-relaxed bg-[#0d0d0e] p-2.5 rounded-[12px] border border-zinc-800/30 overflow-hidden flex flex-col gap-1 min-h-[44px]">
+                    <div className="text-zinc-300 font-bold flex justify-between items-center font-sans">
+                      <span>dockerd</span>
+                      {containerActive && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-200 animate-ping" />
+                      )}
+                    </div>
+                    <div className="flex gap-1.5 text-[6.5px] text-zinc-500 font-bold justify-between">
+                      <span className={cn("transition-colors", currentStepIndex >= 2 ? "text-zinc-300" : "")}>
+                        Layers
+                      </span>
+                      <span>•</span>
+                      <span className={cn("transition-colors", currentStepIndex >= 3 ? "text-zinc-300" : "")}>
+                        Net
+                      </span>
+                      <span>•</span>
+                      <span className={cn("transition-colors", currentStepIndex >= 4 ? "text-zinc-300" : "")}>
+                        Sandbox
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-1.5 text-[6.5px] text-zinc-500 font-bold justify-between">
-                    <span className={cn("transition-colors", currentStepIndex >= 2 ? "text-zinc-300" : "")}>
-                      Layers
-                    </span>
-                    <span>•</span>
-                    <span className={cn("transition-colors", currentStepIndex >= 3 ? "text-zinc-300" : "")}>
-                      Net
-                    </span>
-                    <span>•</span>
-                    <span className={cn("transition-colors", currentStepIndex >= 4 ? "text-zinc-300" : "")}>
-                      Sandbox
-                    </span>
-                  </div>
-                </div>
-              </NodePrimitive>
-            </div>
+                </NodePrimitive>
+              </div>
 
-            {/* Running Container Process Box (appears under Daemon card when created) */}
-            <div className={cn(
-              "absolute right-0 top-[90px] w-40 h-8 rounded-[8px] border bg-[#0d0d0e]/60 flex items-center justify-center gap-1.5 transition-all duration-500 select-text",
-              containerActive
-                ? "opacity-100 scale-100 border-zinc-850 shadow-[0_0_8px_rgba(255,255,255,0.06)]"
-                : "opacity-0 scale-95 border-zinc-800 pointer-events-none"
-            )}>
-              <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              <span className="text-[8px] font-mono text-zinc-250 font-bold">nginx_web (running)</span>
-            </div>
+              {/* Running Container Process Box (appears under Daemon card when created) */}
+              <div className={cn(
+                "absolute right-0 top-[90px] w-40 h-8 rounded-[8px] border bg-[#0d0d0e]/60 flex items-center justify-center gap-1.5 transition-all duration-500 select-text",
+                containerActive
+                  ? "opacity-100 scale-100 border-zinc-850 shadow-[0_0_8px_rgba(255,255,255,0.06)]"
+                  : "opacity-0 scale-95 border-zinc-800 pointer-events-none"
+              )}>
+                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span className="text-[8px] font-mono text-zinc-250 font-bold">nginx_web (running)</span>
+              </div>
 
+            </div>
           </div>
 
           {/* Stepper Timeline Progression track */}
-          <div className="w-full flex justify-between items-start gap-1 max-w-md shrink-0 mt-8 select-none">
+          <div className="w-full flex justify-between items-start gap-1 max-w-md shrink-0 mt-10 md:mt-16 select-none">
             {activeCmdData.steps.map((step, i) => {
               const isDone = i < currentStepIndex;
               const isActive = i === currentStepIndex;
