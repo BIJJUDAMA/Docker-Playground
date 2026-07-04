@@ -48,5 +48,5 @@ export const useAnimationStore = create<AnimationState>((set) => ({
   nextStep: () => set((state) => ({ activeStep: Math.min(state.activeStep + 1, state.maxSteps - 1) })),
   prevStep: () => set((state) => ({ activeStep: Math.max(state.activeStep - 1, 0) })),
   setIsFullscreen: (fullscreen) => set({ isFullscreen: fullscreen }),
-  resetControls: () => set({ isPlaying: false, progress: 0, activeTimeline: null, activeExplanation: null, prevSlug: null, nextSlug: null, activeStep: 0, maxSteps: 1 }),
+  resetControls: () => set({ isPlaying: false, progress: 0, activeTimeline: null, activeExplanation: null }),
 }));
