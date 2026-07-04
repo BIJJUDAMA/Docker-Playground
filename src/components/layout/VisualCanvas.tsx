@@ -128,8 +128,17 @@ export default function VisualCanvas({
       )}
     >
       {/* 1. Primary Visualization Scene Area */}
-      <div className="flex-1 relative overflow-y-auto custom-scrollbar flex flex-col items-center justify-start lg:justify-center p-6 min-h-0 w-full bg-[#0D0D0D]">
-        {children}
+      <div className="flex-1 relative overflow-hidden flex flex-col items-center justify-center p-6 min-h-0 w-full bg-[#0D0D0D]">
+        <div
+          className="flex-1 flex flex-col items-center justify-center transition-transform duration-300 origin-center w-full h-full"
+          style={{
+            transform: isFullscreen ? "scale(1.6)" : "scale(1.15)",
+            width: isFullscreen ? "62.5%" : "86.95%",
+            height: isFullscreen ? "62.5%" : "86.95%",
+          }}
+        >
+          {children}
+        </div>
       </div>
 
       {/* 2. Playback Controller inside Canvas */}
