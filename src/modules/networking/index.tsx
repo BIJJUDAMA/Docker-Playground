@@ -5,7 +5,6 @@ import NetworkBuilder from "./components/NetworkBuilder";
 import PacketJourney from "./components/PacketJourney";
 import IsolationVsCommunication from "./components/IsolationVsCommunication";
 import LivingNetworkMap from "./components/LivingNetworkMap";
-import CommunicationSandbox from "./components/CommunicationSandbox";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
@@ -13,8 +12,7 @@ const STEPS = [
   { id: 0, label: "Network Builder" },
   { id: 1, label: "Packet Journey" },
   { id: 2, label: "Isolation vs Communication" },
-  { id: 3, label: "Living Network Map" },
-  { id: 4, label: "Communication Sandbox" }
+  { id: 3, label: "Living Network Map" }
 ];
 
 export default function NetworkingModule() {
@@ -53,7 +51,6 @@ export default function NetworkingModule() {
         {activeStep === 1 && <PacketJourney />}
         {activeStep === 2 && <IsolationVsCommunication />}
         {activeStep === 3 && <LivingNetworkMap />}
-        {activeStep === 4 && <CommunicationSandbox />}
       </div>
 
     </div>
