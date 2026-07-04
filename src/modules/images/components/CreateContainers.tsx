@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import gsap from "gsap";
 import { useAnimationControls } from "@/hooks/useAnimationControls";
 import { cn } from "@/lib/utils";
 import { Layers, Box, Plus, RotateCcw, HelpCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 import { NodePrimitive } from "@/components/primitives/NodePrimitive";
+import { useAnimationStore } from "@/stores/animationStore";
 
 interface ContainerInstance {
   id: number;
@@ -16,70 +17,83 @@ interface ContainerInstance {
 
 export default function CreateContainers() {
   const [containers, setContainers] = useState<ContainerInstance[]>([]);
-  const [isSpawning, setIsSpawning] = useState<boolean>(false);
   const [hoveredContainerId, setHoveredContainerId] = useState<number | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const spawnRef = useRef<HTMLDivElement>(null);
   const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
 
+  const { setPlaying, setProgress } = useAnimationStore();
+
   useAnimationControls(timeline);
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     setContainers([]);
-    setIsSpawning(false);
     setHoveredContainerId(null);
     if (timeline) {
       timeline.pause().progress(0);
     }
     gsap.set(spawnRef.current, { scale: 0, opacity: 0, x: 0, y: 0 });
-  };
+  }, [timeline]);
 
-  const handleSpawn = () => {
-    if (containers.length >= 3 || isSpawning) return;
-
-    setIsSpawning(true);
-    const nextId = containers.length + 1;
-    const nextName = `web-app-0${nextId}`;
-    const nextPort = 8080 + nextId;
-
+  useEffect(() => {
     const tl = gsap.timeline({
+      paused: true,
+      onStart: () => {
+        setPlaying(true);
+        setContainers([]);
+      },
+      onUpdate: () => {
+        if (tl) setProgress(tl.progress() * 100);
+      },
       onComplete: () => {
-        setContainers(prev => [...prev, { id: nextId, name: nextName, port: nextPort }]);
-        setIsSpawning(false);
-        gsap.set(spawnRef.current, { scale: 0, opacity: 0, x: 0, y: 0 });
+        setPlaying(false);
       }
     });
 
     setTimeline(tl);
 
-    // Dynamic vertical offsets based on target instance slot
-    // Container slot 1: y = -56px
-    // Container slot 2: y = 0px
-    // Container slot 3: y = 56px
-    const yOffset = (nextId === 1) ? -56 : (nextId === 2) ? 0 : 56;
+    // Build automated sequential spawning timeline for 3 containers
+    tl.set(spawnRef.current, { scale: 0, opacity: 0, x: 0, y: 0 })
+      // Container 1
+      .to(spawnRef.current, { opacity: 1, scale: 1, duration: 0.3 })
+      .to(spawnRef.current, { x: 300, y: -56, duration: 1.0, ease: "power2.inOut" })
+      .to(spawnRef.current, { opacity: 0, scale: 0, duration: 0.2 })
+      .call(() => {
+        setContainers([{ id: 1, name: "web-app-01", port: 8081 }]);
+      })
+      .to({}, { duration: 0.3 }) // pause
 
-    gsap.set(spawnRef.current, { x: 0, y: 0, scale: 0.8, opacity: 0 });
+      // Container 2
+      .set(spawnRef.current, { x: 0, y: 0 })
+      .to(spawnRef.current, { opacity: 1, scale: 1, duration: 0.3 })
+      .to(spawnRef.current, { x: 300, y: 0, duration: 1.0, ease: "power2.inOut" })
+      .to(spawnRef.current, { opacity: 0, scale: 0, duration: 0.2 })
+      .call(() => {
+        setContainers([
+          { id: 1, name: "web-app-01", port: 8081 },
+          { id: 2, name: "web-app-02", port: 8082 }
+        ]);
+      })
+      .to({}, { duration: 0.3 }) // pause
 
-    tl.to(spawnRef.current, {
-      opacity: 1,
-      scale: 1,
-      duration: 0.3
-    })
-    .to(spawnRef.current, {
-      x: 300,
-      y: yOffset,
-      duration: 1.0,
-      ease: "power2.inOut"
-    });
-  };
+      // Container 3
+      .set(spawnRef.current, { x: 0, y: 0 })
+      .to(spawnRef.current, { opacity: 1, scale: 1, duration: 0.3 })
+      .to(spawnRef.current, { x: 300, y: 56, duration: 1.0, ease: "power2.inOut" })
+      .to(spawnRef.current, { opacity: 0, scale: 0, duration: 0.2 })
+      .call(() => {
+        setContainers([
+          { id: 1, name: "web-app-01", port: 8081 },
+          { id: 2, name: "web-app-02", port: 8082 },
+          { id: 3, name: "web-app-03", port: 8083 }
+        ]);
+      });
 
-  useEffect(() => {
-    handleReset();
     return () => {
-      if (timeline) timeline.kill();
+      tl.kill();
     };
-  }, []);
+  }, [setPlaying, setProgress]);
 
   return (
     <VisualCanvas
@@ -219,20 +233,15 @@ export default function CreateContainers() {
           </div>
 
           <div className="flex flex-col gap-2 flex-1 justify-center">
-            <button
-              onClick={handleSpawn}
-              disabled={containers.length >= 3 || isSpawning}
-              className="w-full py-2.5 rounded-[9px] text-xs font-bold bg-white text-black hover:bg-zinc-200 disabled:opacity-40 transition-all border-0 cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <Plus className="w-3.5 h-3.5 text-black" />
-              Run Container
-            </button>
+            <span className="text-[10px] text-zinc-550 italic text-center font-mono">
+              Use the unified Play toolbar controls below to animate container process creation.
+            </span>
           </div>
 
           {containers.length > 0 && (
             <button
               onClick={handleReset}
-              className="w-full bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              className="w-full bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               Reset Simulation
