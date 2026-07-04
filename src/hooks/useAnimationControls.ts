@@ -58,19 +58,29 @@ export function useAnimationControls(timeline: gsap.core.Timeline | null) {
   useEffect(() => {
     if (!timeline) return;
 
+    // Capture any pre-existing callbacks configured on the timeline
+    const existingOnUpdate = timeline.eventCallback("onUpdate");
+    const existingOnComplete = timeline.eventCallback("onComplete");
+
     timeline.eventCallback("onUpdate", () => {
       setProgress(timeline.progress());
+      if (existingOnUpdate) {
+        existingOnUpdate();
+      }
     });
 
     timeline.eventCallback("onComplete", () => {
       setPlaying(false);
       setProgress(1);
+      if (existingOnComplete) {
+        existingOnComplete();
+      }
     });
 
     return () => {
       if (timeline) {
-        timeline.eventCallback("onUpdate", null);
-        timeline.eventCallback("onComplete", null);
+        timeline.eventCallback("onUpdate", existingOnUpdate || null);
+        timeline.eventCallback("onComplete", existingOnComplete || null);
       }
     };
   }, [timeline, setPlaying, setProgress]);
