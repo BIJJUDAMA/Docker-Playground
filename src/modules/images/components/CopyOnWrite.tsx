@@ -303,9 +303,8 @@ export default function CopyOnWrite() {
           {/* Reset button trigger */}
           {animationState !== "idle" && (
             <button
-              disabled={animationState === "reading" || animationState === "copying"}
               onClick={handleReset}
-              className="w-full bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40 cursor-pointer"
+              className="w-full bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               Reset Simulation
