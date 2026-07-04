@@ -121,7 +121,7 @@ export default function VisualCanvas({
       ref={containerRef}
       className={cn(
         "w-full flex-1 flex flex-col min-h-0 select-none bg-[#0D0D0D] rounded-[18px] border border-[#232323] overflow-hidden transition-all duration-300", 
-        isFullscreen && "fixed inset-0 z-50 rounded-none border-none bg-black w-screen h-screen",
+        isFullscreen && "fixed inset-0 z-[9999] rounded-none border-none bg-black w-screen h-screen",
         className
       )}
     >
