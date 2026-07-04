@@ -1,0 +1,245 @@
+"use client";
+
+import React, { useRef, useState, useEffect } from "react";
+import gsap from "gsap";
+import { useAnimationControls } from "@/hooks/useAnimationControls";
+import { cn } from "@/lib/utils";
+import { Layers, Box, Plus, RotateCcw, HelpCircle, ArrowRight, ShieldCheck } from "lucide-react";
+import VisualCanvas from "@/components/layout/VisualCanvas";
+import { NodePrimitive } from "@/components/primitives/NodePrimitive";
+
+interface ContainerInstance {
+  id: number;
+  name: string;
+  port: number;
+}
+
+export default function CreateContainers() {
+  const [containers, setContainers] = useState<ContainerInstance[]>([]);
+  const [isSpawning, setIsSpawning] = useState<boolean>(false);
+  const [hoveredContainerId, setHoveredContainerId] = useState<number | null>(null);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const spawnRef = useRef<HTMLDivElement>(null);
+  const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
+
+  useAnimationControls(timeline);
+
+  const handleReset = () => {
+    setContainers([]);
+    setIsSpawning(false);
+    setHoveredContainerId(null);
+    if (timeline) {
+      timeline.pause().progress(0);
+    }
+    gsap.set(spawnRef.current, { scale: 0, opacity: 0, x: 0, y: 0 });
+  };
+
+  const handleSpawn = () => {
+    if (containers.length >= 3 || isSpawning) return;
+
+    setIsSpawning(true);
+    const nextId = containers.length + 1;
+    const nextName = `web-app-0${nextId}`;
+    const nextPort = 8080 + nextId;
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setContainers(prev => [...prev, { id: nextId, name: nextName, port: nextPort }]);
+        setIsSpawning(false);
+        gsap.set(spawnRef.current, { scale: 0, opacity: 0, x: 0, y: 0 });
+      }
+    });
+
+    setTimeline(tl);
+
+    // Dynamic vertical offsets based on target instance slot
+    // Container slot 1: y = -48px
+    // Container slot 2: y = 0px
+    // Container slot 3: y = 48px
+    const yOffset = (nextId === 1) ? -48 : (nextId === 2) ? 0 : 48;
+
+    gsap.set(spawnRef.current, { x: 0, y: 0, scale: 0.8, opacity: 0 });
+
+    tl.to(spawnRef.current, {
+      opacity: 1,
+      scale: 1,
+      duration: 0.3
+    })
+    .to(spawnRef.current, {
+      x: 180,
+      y: yOffset,
+      duration: 1.0,
+      ease: "power2.inOut"
+    });
+  };
+
+  useEffect(() => {
+    handleReset();
+    return () => {
+      if (timeline) timeline.kill();
+    };
+  }, []);
+
+  return (
+    <VisualCanvas
+      objective="Observe how multiple running container instances can be generated from a single shared read-only image blueprint."
+      timeline={timeline}
+      onStepBack={handleReset}
+      explanation={
+        <div className="flex flex-col gap-2.5 font-sans">
+          <div className="flex items-center gap-1.5 font-bold text-zinc-200">
+            <HelpCircle className="w-4 h-4 text-zinc-450" />
+            Creating Containers from an Image
+          </div>
+          <p>
+            An image is a static snapshot. Clicking **Run Container** spawns a running instance of that snapshot.
+          </p>
+          <p>
+            Containers are lightweight because they do not copy the image data. They all reference the **same read-only image layers** on the disk, making instantiation near-instantaneous and footprint-free.
+          </p>
+        </div>
+      }
+    >
+      <div ref={containerRef} className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
+        
+        {/* Sandbox Canvas (Left) */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px] overflow-hidden">
+          
+          <div className="w-full max-w-lg flex items-center justify-between gap-6 relative min-h-[220px]">
+            
+            {/* Spawning capsule element (flies between left and right) */}
+            <div 
+              ref={spawnRef}
+              className="absolute left-[130px] w-32 py-1.5 rounded-[8px] border border-zinc-700 bg-zinc-850 text-white font-mono text-[8px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md pointer-events-none opacity-0 scale-0 z-20"
+            >
+              <Box className="w-3.5 h-3.5 text-zinc-300" />
+              run instance
+            </div>
+
+            {/* Static Connection vectors in background (visible on desktop) */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 hidden md:block">
+              {containers.map((c) => {
+                const yTarget = (c.id === 1) ? 62 : (c.id === 2) ? 110 : 158;
+                const isHovered = hoveredContainerId === c.id;
+                return (
+                  <g key={c.id}>
+                    <line 
+                      x1={180} 
+                      y1={110} 
+                      x2={340} 
+                      y2={yTarget} 
+                      stroke={isHovered ? "#FAFAFA" : "#1f1f23"} 
+                      strokeWidth={isHovered ? 1.5 : 1}
+                      strokeDasharray={isHovered ? "0" : "4"}
+                      className="transition-all duration-300"
+                    />
+                    {isHovered && (
+                      <circle cx={180} cy={110} r="3" fill="#FAFAFA" className="animate-ping" />
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Left: Immutable Image Card */}
+            <div className="w-40 flex flex-col gap-2 text-center shrink-0 z-10">
+              <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-zinc-550">
+                Shared Template
+              </span>
+              <NodePrimitive
+                label="app-image:v1"
+                status="idle"
+                icon={<Layers className="w-4 h-4 text-zinc-300" />}
+                subtitle="Read-Only blueprint"
+                className="py-4 rounded-[12px] bg-[#0d0d0e] border-zinc-850"
+              />
+            </div>
+
+            {/* Middle Spacer with Arrow */}
+            <div className="hidden md:flex flex-col items-center justify-center shrink-0 text-zinc-800 z-10 pointer-events-none select-none">
+              <span className="text-[7.5px] font-mono font-bold uppercase tracking-wider text-zinc-650 block mb-0.5">
+                instantiate
+              </span>
+              <ArrowRight className="w-4 h-4 text-zinc-750 animate-pulse" />
+            </div>
+
+            {/* Right: Containers list */}
+            <div className="w-44 flex flex-col gap-2 min-h-[160px] justify-center shrink-0 z-10">
+              <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-zinc-550 text-center">
+                Running Containers
+              </span>
+
+              {containers.length > 0 ? (
+                containers.map((c) => (
+                  <div 
+                    key={c.id} 
+                    onMouseEnter={() => setHoveredContainerId(c.id)}
+                    onMouseLeave={() => setHoveredContainerId(null)}
+                    className="animate-fadeIn"
+                  >
+                    <NodePrimitive
+                      label={c.name}
+                      status="running"
+                      icon={<Box className="w-3.5 h-3.5 text-white" />}
+                      subtitle={`IP: 172.17.0.${c.id + 1} | Port ${c.port}`}
+                      className="py-1.5 px-3 rounded-[9px] border-zinc-850 bg-[#0d0d0e]/60"
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="border border-dashed border-zinc-850 rounded-[12px] p-5 text-center text-[9px] text-zinc-650 italic bg-[#0d0d0e]/40 flex flex-col items-center justify-center gap-1">
+                  <Box className="w-4 h-4 text-zinc-750" />
+                  <span>No instances running</span>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* Selected Details panel (Right) */}
+        <div className="w-full md:w-80 p-5 rounded-[18px] border border-zinc-800/40 bg-[#121214] flex flex-col gap-4 relative shrink-0 shadow-sm">
+          <div>
+            <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-450 font-bold block mb-1">
+              Sandbox Actions
+            </span>
+            <h4 className="text-sm font-extrabold text-white">
+              {hoveredContainerId ? `web-app-0${hoveredContainerId} link` : "Instance Factory"}
+            </h4>
+            <p className="text-xs text-zinc-450 leading-relaxed font-normal mt-2 select-text font-sans">
+              {hoveredContainerId 
+                ? "This container utilizes the exact filesystem layers of the base image. It consumes zero extra disk space for the base code, allocating only a micro-thin isolated layer for runtime process updates."
+                : "Spawn container process instances from the template image snapshot. Observe how each obtains its own virtual IP address and host port binding."
+              }
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2 flex-1 justify-center">
+            <button
+              onClick={handleSpawn}
+              disabled={containers.length >= 3 || isSpawning}
+              className="w-full py-2.5 rounded-[9px] text-xs font-bold bg-white text-black hover:bg-zinc-200 disabled:opacity-40 transition-all border-0 cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5 text-black" />
+              Run Container
+            </button>
+          </div>
+
+          {containers.length > 0 && (
+            <button
+              onClick={handleReset}
+              className="w-full bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset Simulation
+            </button>
+          )}
+
+        </div>
+
+      </div>
+    </VisualCanvas>
+  );
+}
