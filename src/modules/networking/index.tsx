@@ -1,20 +1,20 @@
 "use client";
 
 import React, { useState } from "react";
-import PortForwarding from "./components/PortForwarding";
-import ContainerBridge from "./components/ContainerBridge";
-import CustomNetwork from "./components/CustomNetwork";
-import DockerDns from "./components/DockerDns";
-import NetworkInspector from "./components/NetworkInspector";
+import NetworkBuilder from "./components/NetworkBuilder";
+import PacketJourney from "./components/PacketJourney";
+import PortMappingLab from "./components/PortMappingLab";
+import DnsServiceDiscovery from "./components/DnsServiceDiscovery";
+import NetworkDebugger from "./components/NetworkDebugger";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
 const STEPS = [
-  { id: 0, label: "Port Forwarding" },
-  { id: 1, label: "Multi-Container Bridge" },
-  { id: 2, label: "Custom Network Subnets" },
-  { id: 3, label: "DNS Name Resolution" },
-  { id: 4, label: "Network Ingress Inspector" }
+  { id: 0, label: "Network Builder" },
+  { id: 1, label: "Packet Journey" },
+  { id: 2, label: "Port Mapping Lab" },
+  { id: 3, label: "DNS & Service Discovery" },
+  { id: 4, label: "Network Debugger" }
 ];
 
 export default function NetworkingModule() {
@@ -27,7 +27,7 @@ export default function NetworkingModule() {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full min-h-0 bg-transparent">
+    <div className="flex-1 flex flex-col h-full min-h-0 bg-transparent font-sans">
       
       {/* Sub-step selection navigation */}
       <div className="px-6 pt-2 pb-0 border-b border-white/5 flex gap-2 overflow-x-auto shrink-0 bg-zinc-950/20">
@@ -39,7 +39,7 @@ export default function NetworkingModule() {
               "text-xs font-semibold py-3 px-4 border-b-2 -mb-[1px] transition-all whitespace-nowrap focus:outline-none cursor-pointer",
               activeStep === step.id
                 ? "border-[#FAFAFA] text-[#FAFAFA] font-bold"
-                : "border-transparent text-zinc-500 hover:text-zinc-305"
+                : "border-transparent text-zinc-550 hover:text-zinc-350"
             )}
           >
             {step.label}
@@ -49,11 +49,11 @@ export default function NetworkingModule() {
 
       {/* Render the active visualization component */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-        {activeStep === 0 && <PortForwarding />}
-        {activeStep === 1 && <ContainerBridge />}
-        {activeStep === 2 && <CustomNetwork />}
-        {activeStep === 3 && <DockerDns />}
-        {activeStep === 4 && <NetworkInspector />}
+        {activeStep === 0 && <NetworkBuilder />}
+        {activeStep === 1 && <PacketJourney />}
+        {activeStep === 2 && <PortMappingLab />}
+        {activeStep === 3 && <DnsServiceDiscovery />}
+        {activeStep === 4 && <NetworkDebugger />}
       </div>
 
     </div>
