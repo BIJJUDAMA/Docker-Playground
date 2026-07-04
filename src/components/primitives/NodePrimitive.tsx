@@ -4,7 +4,7 @@ import React, { forwardRef } from "react";
 import { Laptop, Server, Database, Network, Box, RefreshCw, Terminal, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface NodePrimitiveProps {
+interface NodePrimitiveProps extends React.HTMLAttributes<HTMLDivElement> {
   label: string;
   type?: "laptop" | "server" | "database" | "network" | "container" | "registry" | "terminal" | "default";
   status?: "running" | "healthy" | "crashed" | "idle" | "booting";
@@ -15,7 +15,7 @@ interface NodePrimitiveProps {
 }
 
 export const NodePrimitive = forwardRef<HTMLDivElement, NodePrimitiveProps>(
-  ({ label, type = "default", status = "idle", icon, children, className, subtitle }, ref) => {
+  ({ label, type = "default", status = "idle", icon, children, className, subtitle, ...props }, ref) => {
     // Determine icon component based on type
     const renderIcon = () => {
       if (icon) return icon;
@@ -59,8 +59,10 @@ export const NodePrimitive = forwardRef<HTMLDivElement, NodePrimitiveProps>(
         className={cn(
           "p-4 rounded-[12px] bg-[#111111] shadow-sm flex flex-col gap-2.5 hover:border-[#3A3A3A] hover:bg-[#151515] hover:scale-[1.01] transition-all duration-[160ms] select-text",
           statusStyles[status],
+          props.onClick && "cursor-pointer active:scale-95",
           className
         )}
+        {...props}
       >
         {/* Node header bar */}
         <div className="flex items-center justify-between gap-4 shrink-0 select-none">
