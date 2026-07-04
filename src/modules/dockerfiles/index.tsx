@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import DockerfileBuilder from "./components/DockerfileBuilder";
-import BuildTimeline from "./components/BuildTimeline";
+import BuildImage from "../images/components/BuildImage";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
@@ -44,7 +44,7 @@ export default function DockerfilesModule() {
       {/* Render the active visualization component */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {activeStep === 0 && <DockerfileBuilder />}
-        {activeStep === 1 && <BuildTimeline />}
+        {activeStep === 1 && <BuildImage />}
       </div>
 
     </div>

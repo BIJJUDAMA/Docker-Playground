@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import VolumeTypes from "./components/VolumeTypes";
-import VolumeLifecycle from "./components/VolumeLifecycle";
+import Persistence from "../images/components/Persistence";
 import StorageComparison from "./components/StorageComparison";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
@@ -46,7 +46,7 @@ export default function VolumesModule() {
       {/* Render the active visualization component */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {activeStep === 0 && <VolumeTypes />}
-        {activeStep === 1 && <VolumeLifecycle />}
+        {activeStep === 1 && <Persistence />}
         {activeStep === 2 && <StorageComparison />}
       </div>
 
