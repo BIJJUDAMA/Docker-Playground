@@ -1,22 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
-import ImageLayers from "./components/ImageLayers";
-import DockerPull from "./components/DockerPull";
-import CopyOnWrite from "./components/CopyOnWrite";
-import OverlayDriver from "./components/OverlayDriver";
+import BuildImage from "./components/BuildImage";
+import ExploreImage from "./components/ExploreImage";
+import CreateContainers from "./components/CreateContainers";
+import InsideContainer from "./components/InsideContainer";
 import ContainerLifecycle from "./components/ContainerLifecycle";
+import Persistence from "./components/Persistence";
 import ImageVsContainer from "./components/ImageVsContainer";
+import BehindScenes from "./components/BehindScenes";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
 const STEPS = [
-  { id: 0, label: "Image Layers Stack" },
-  { id: 1, label: "Docker Pull Sequence" },
-  { id: 2, label: "Copy on Write (CoW)" },
-  { id: 3, label: "Overlay2 Storage View" },
-  { id: 4, label: "Container Lifecycle" },
-  { id: 5, label: "Image vs Container" }
+  { id: 0, label: "1. Build the Image" },
+  { id: 1, label: "2. Explore the Image" },
+  { id: 2, label: "3. Create Containers" },
+  { id: 3, label: "4. Inside a Container" },
+  { id: 4, label: "5. Container Lifecycle" },
+  { id: 5, label: "6. Persistence" },
+  { id: 6, label: "7. Image vs Container" },
+  { id: 7, label: "8. Behind the Scenes" }
 ];
 
 export default function ImagesModule() {
@@ -32,7 +36,7 @@ export default function ImagesModule() {
     <div className="flex-1 flex flex-col h-full min-h-0 bg-transparent font-sans">
       
       {/* Sub-step selection navigation */}
-      <div className="px-6 pt-2 pb-0 border-b border-white/5 flex gap-2 overflow-x-auto shrink-0 bg-zinc-950/20">
+      <div className="px-6 pt-2 pb-0 border-b border-white/5 flex gap-2 overflow-x-auto shrink-0 bg-zinc-950/20 custom-scrollbar">
         {STEPS.map((step) => (
           <button
             key={step.id}
@@ -41,7 +45,7 @@ export default function ImagesModule() {
               "text-xs font-semibold py-3 px-4 border-b-2 -mb-[1px] transition-all whitespace-nowrap focus:outline-none cursor-pointer",
               activeStep === step.id
                 ? "border-[#FAFAFA] text-[#FAFAFA] font-bold"
-                : "border-transparent text-zinc-500 hover:text-zinc-305"
+                : "border-transparent text-zinc-550 hover:text-zinc-300"
             )}
           >
             {step.label}
@@ -51,12 +55,14 @@ export default function ImagesModule() {
 
       {/* Render the active visualization component */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-        {activeStep === 0 && <ImageLayers />}
-        {activeStep === 1 && <DockerPull />}
-        {activeStep === 2 && <CopyOnWrite />}
-        {activeStep === 3 && <OverlayDriver />}
+        {activeStep === 0 && <BuildImage />}
+        {activeStep === 1 && <ExploreImage />}
+        {activeStep === 2 && <CreateContainers />}
+        {activeStep === 3 && <InsideContainer />}
         {activeStep === 4 && <ContainerLifecycle />}
-        {activeStep === 5 && <ImageVsContainer />}
+        {activeStep === 5 && <Persistence />}
+        {activeStep === 6 && <ImageVsContainer />}
+        {activeStep === 7 && <BehindScenes />}
       </div>
 
     </div>
