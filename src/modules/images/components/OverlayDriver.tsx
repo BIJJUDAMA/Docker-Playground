@@ -197,6 +197,8 @@ export default function OverlayDriver() {
       objective="Explore overlay2 layer storage, tracing UpperDir, LowerDir, and MergedDir file system transactions."
       timeline={timeline}
       onStepBack={handleReset}
+      zoomScale={0.8}
+      fullscreenZoomScale={1.1}
       explanation={
         <div className="flex flex-col gap-2.5 font-sans">
           <div className="flex items-center gap-1.5 font-bold text-zinc-200">

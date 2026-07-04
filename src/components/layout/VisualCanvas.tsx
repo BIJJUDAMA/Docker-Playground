@@ -19,6 +19,8 @@ interface VisualCanvasProps {
   className?: string;
   onStepForward?: () => void;
   onStepBack?: () => void;
+  zoomScale?: number;
+  fullscreenZoomScale?: number;
 }
 
 export default function VisualCanvas({
@@ -29,6 +31,8 @@ export default function VisualCanvas({
   className,
   onStepForward,
   onStepBack,
+  zoomScale,
+  fullscreenZoomScale,
 }: VisualCanvasProps) {
   const { isPlaying, speed, setPlaying, setSpeed, progress, prevSlug, nextSlug, setActiveExplanation, isFullscreen, setIsFullscreen } = useAnimationStore();
   const { replay, reset } = useAnimationControls(timeline);
@@ -137,7 +141,7 @@ export default function VisualCanvas({
         <div
           className="w-full flex-1 flex flex-col items-center justify-center transition-all duration-300"
           style={{
-            zoom: isFullscreen ? 1.7 : 1.15,
+            zoom: isFullscreen ? (fullscreenZoomScale ?? 1.7) : (zoomScale ?? 1.15),
           }}
         >
           {children}
