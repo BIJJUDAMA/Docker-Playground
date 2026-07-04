@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,11 @@ interface NavControlsProps {
 export default function NavControls({ prevSlug, nextSlug }: NavControlsProps) {
   const router = useRouter();
   const { activeStep, maxSteps, nextStep, prevStep } = useAnimationStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handlePrevClick = () => {
     if (activeStep > 0) {
@@ -33,6 +39,27 @@ export default function NavControls({ prevSlug, nextSlug }: NavControlsProps) {
 
   const hasPrev = activeStep > 0 || !!prevSlug;
   const hasNext = activeStep < maxSteps - 1 || !!nextSlug;
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center gap-2 select-none font-sans">
+        <button
+          disabled
+          className="text-xs px-3.5 py-2 rounded-[6px] font-semibold transition-all flex items-center gap-1 border-[#232323] bg-[#090909] text-[#52525B] opacity-50 cursor-not-allowed"
+        >
+          <ChevronLeft className="w-4 h-4 -ml-1 text-current" />
+          Previous
+        </button>
+        <button
+          disabled
+          className="text-xs px-3.5 py-2 rounded-[6px] font-bold border-0 shadow-sm transition-all flex items-center gap-1 border-[#232323] bg-[#090909] text-[#52525B] opacity-50 cursor-not-allowed font-semibold"
+        >
+          Next
+          <ChevronRight className="w-4 h-4 -mr-1 text-current" />
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2 select-none font-sans">

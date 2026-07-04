@@ -27,6 +27,17 @@ export default function ReplayButton() {
 
   const isDisabled = mounted ? !activeTimeline : true;
 
+  if (!mounted) {
+    return (
+      <button
+        disabled
+        className="w-10 h-10 rounded-[6px] border border-zinc-805 bg-zinc-900 text-zinc-305 opacity-40 flex items-center justify-center cursor-not-allowed"
+      >
+        <RotateCcw className="w-4 h-4 text-zinc-300" />
+      </button>
+    );
+  }
+
   return (
     <TooltipProvider>
       <Tooltip>

@@ -27,6 +27,17 @@ export default function ResetButton() {
 
   const isDisabled = mounted ? !activeTimeline : true;
 
+  if (!mounted) {
+    return (
+      <button
+        disabled
+        className="w-10 h-10 rounded-[6px] border border-zinc-805 bg-zinc-900 text-zinc-305 opacity-40 flex items-center justify-center cursor-not-allowed"
+      >
+        <Square className="w-3.5 h-3.5 fill-zinc-300 text-zinc-300" />
+      </button>
+    );
+  }
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -37,7 +48,7 @@ export default function ResetButton() {
               size="icon"
               onClick={handleReset}
               disabled={isDisabled}
-              className="w-10 h-10 rounded-[6px] border-zinc-805 bg-zinc-900 text-zinc-305 hover:text-white hover:bg-zinc-800 focus-visible:ring-1 focus-visible:ring-cyan-500 disabled:opacity-40 disabled:hover:bg-zinc-900 transition-colors"
+              className="w-10 h-10 rounded-[6px] border-zinc-850 bg-zinc-900 text-zinc-305 hover:text-white hover:bg-zinc-800 focus-visible:ring-1 focus-visible:ring-cyan-500 disabled:opacity-40 disabled:hover:bg-zinc-900 transition-colors"
               aria-label="Reset animation"
             >
               <Square className="w-3.5 h-3.5 fill-zinc-300 text-zinc-300" />
