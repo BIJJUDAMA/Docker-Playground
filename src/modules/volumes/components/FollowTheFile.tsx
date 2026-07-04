@@ -6,6 +6,7 @@ import { useAnimationControls } from "@/hooks/useAnimationControls";
 import { cn } from "@/lib/utils";
 import { HelpCircle, RefreshCw, FileText, Folder, HardDrive, Trash2, Box, ArrowRight, ShieldCheck, CheckCircle2, AlertTriangle, FileCode } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
+import { useAnimationStore } from "@/stores/animationStore";
 
 type StorageTarget = "container" | "volume" | "bind";
 
@@ -14,6 +15,7 @@ export default function FollowTheFile() {
   const [fileState, setFileState] = useState<"idle" | "created" | "deleted" | "edited">("idle");
   const [fileContent, setFileContent] = useState<string>("hello from host");
   const [terminalLog, setTerminalLog] = useState("Select a storage target and click 'Create File hello.txt' to begin.");
+  const { isPlaying, setPlaying } = useAnimationStore();
   
   const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
 
@@ -23,6 +25,7 @@ export default function FollowTheFile() {
   useAnimationControls(timeline);
 
   const handleReset = () => {
+    setPlaying(false);
     setFileState("idle");
     setFileContent("hello from host");
     setTerminalLog("Select a storage target and click 'Create File hello.txt' to begin.");
@@ -35,6 +38,7 @@ export default function FollowTheFile() {
   };
 
   const handleCreateFile = () => {
+    setPlaying(true);
     setFileState("created");
     setTerminalLog(`host$ touch hello.txt\nWriting file to mapped storage path...`);
 
@@ -42,7 +46,11 @@ export default function FollowTheFile() {
       timeline.kill();
     }
 
-    const tl = gsap.timeline();
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setPlaying(false);
+      }
+    });
     setTimeline(tl);
 
     // Initial packet reveal (x: 20, y: 0)
@@ -106,6 +114,7 @@ export default function FollowTheFile() {
   };
 
   const handleDeleteContainer = () => {
+    setPlaying(true);
     setFileState("deleted");
     setTerminalLog("host$ docker rm -f container\nDestroying container runtime namespaces...");
 
@@ -113,7 +122,11 @@ export default function FollowTheFile() {
       timeline.kill();
     }
 
-    const tl = gsap.timeline();
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setPlaying(false);
+      }
+    });
     setTimeline(tl);
 
     if (target === "container") {

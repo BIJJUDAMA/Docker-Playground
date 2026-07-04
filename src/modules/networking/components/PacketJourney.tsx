@@ -6,6 +6,7 @@ import { useAnimationControls } from "@/hooks/useAnimationControls";
 import { cn } from "@/lib/utils";
 import { HelpCircle, Play, RotateCcw, AlertTriangle, Monitor, ShieldAlert, CheckCircle2 } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
+import { useAnimationStore } from "@/stores/animationStore";
 
 type ErrorState = "none" | "backend_down" | "db_down" | "wrong_port" | "net_disconnect";
 
@@ -26,7 +27,7 @@ const HOPS: NetHop[] = [
 
 export default function PacketJourney() {
   const [activeError, setActiveError] = useState<ErrorState>("none");
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const { isPlaying, setPlaying } = useAnimationStore();
   const [activeHopId, setActiveHopId] = useState<string>("browser");
   const [terminalLog, setTerminalLog] = useState("Configure error scenarios and click 'Send Request' to watch packet trace.");
 
@@ -38,7 +39,7 @@ export default function PacketJourney() {
   useAnimationControls(timeline);
 
   const handleReset = () => {
-    setIsPlaying(false);
+    setPlaying(false);
     setActiveHopId("browser");
     setTerminalLog("Configure error scenarios and click 'Send Request' to watch packet trace.");
 
@@ -53,7 +54,7 @@ export default function PacketJourney() {
   };
 
   const handleSendRequest = () => {
-    setIsPlaying(true);
+    setPlaying(true);
     setActiveHopId("browser");
     setTerminalLog("browser$ fetch('http://localhost:8080')\nPackaging HTTP Request payload packet...");
 
@@ -63,7 +64,7 @@ export default function PacketJourney() {
 
     const tl = gsap.timeline({
       onComplete: () => {
-        setIsPlaying(false);
+        setPlaying(false);
       }
     });
 

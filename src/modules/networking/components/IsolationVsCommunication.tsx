@@ -6,11 +6,12 @@ import { useAnimationControls } from "@/hooks/useAnimationControls";
 import { cn } from "@/lib/utils";
 import { HelpCircle, RefreshCw, Server, Database, Play, CheckCircle2, AlertTriangle, Monitor } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
+import { useAnimationStore } from "@/stores/animationStore";
 
 export default function IsolationVsCommunication() {
   const [hasBridge, setHasBridge] = useState<boolean>(false);
   const [showDbIsland, setShowDbIsland] = useState<boolean>(false);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const { isPlaying, setPlaying } = useAnimationStore();
   const [terminalLog, setTerminalLog] = useState("Click 'Send Request' to watch the packet travel.");
   const [collisionActive, setCollisionActive] = useState<boolean>(false);
 
@@ -23,7 +24,7 @@ export default function IsolationVsCommunication() {
   useAnimationControls(timeline);
 
   const handleReset = () => {
-    setIsPlaying(false);
+    setPlaying(false);
     setHasBridge(false);
     setShowDbIsland(false);
     setCollisionActive(false);
@@ -38,7 +39,7 @@ export default function IsolationVsCommunication() {
   };
 
   const handleSendRequest = () => {
-    setIsPlaying(true);
+    setPlaying(true);
     setCollisionActive(false);
     setTerminalLog("web-front$ ping api-service\nLaunching connection request packet...");
 
@@ -48,7 +49,7 @@ export default function IsolationVsCommunication() {
 
     const tl = gsap.timeline({
       onComplete: () => {
-        setIsPlaying(false);
+        setPlaying(false);
       }
     });
 
