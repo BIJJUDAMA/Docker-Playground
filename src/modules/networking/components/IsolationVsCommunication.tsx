@@ -55,15 +55,15 @@ export default function IsolationVsCommunication() {
 
     setTimeline(tl);
 
-    // Initial packet reveal at Frontend Island (x: 40, y: 55)
-    gsap.set(packetRef.current, { x: 40, y: 55, opacity: 0, scale: 0.8, backgroundColor: "#FAFAFA" });
+    // Initial packet reveal at Frontend Island (x: 58, y: 65)
+    gsap.set(packetRef.current, { x: 58, y: 65, opacity: 0, scale: 0.8, backgroundColor: "#FAFAFA" });
     tl.to(packetRef.current, { opacity: 1, scale: 1, duration: 0.2 });
 
     if (!hasBridge) {
       // Packet travels to mid-water and bounces off invisible wall
       tl.to(packetRef.current, {
-        x: 160,
-        y: 55,
+        x: 178,
+        y: 65,
         duration: 0.5,
         ease: "power1.in"
       })
@@ -78,17 +78,17 @@ export default function IsolationVsCommunication() {
       })
       // Drop packet down/fade
       .to(packetRef.current, {
-        y: 100,
+        y: 110,
         opacity: 0,
         scale: 0.4,
         duration: 0.4
       });
 
     } else {
-      // Packet crosses bridge to Backend Island successfully (x: 280, y: 55)
+      // Packet crosses bridge to Backend Island successfully (x: 298, y: 65)
       tl.to(packetRef.current, {
-        x: 280,
-        y: 55,
+        x: 298,
+        y: 65,
         duration: 0.8,
         ease: "power1.inOut",
         onStart: () => {
@@ -97,10 +97,10 @@ export default function IsolationVsCommunication() {
       });
 
       if (showDbIsland) {
-        // Query Database Island at bottom (x: 280, y: 155)
+        // Query Database Island at bottom (x: 298, y: 165)
         tl.to(packetRef.current, {
-          x: 280,
-          y: 155,
+          x: 298,
+          y: 165,
           duration: 0.6,
           ease: "power1.inOut",
           onStart: () => {
@@ -112,8 +112,8 @@ export default function IsolationVsCommunication() {
           duration: 0.15
         })
         .to(packetRef.current, {
-          x: 40,
-          y: 55,
+          x: 58,
+          y: 65,
           duration: 1.2,
           ease: "power2.inOut",
           onStart: () => {
@@ -127,8 +127,8 @@ export default function IsolationVsCommunication() {
           duration: 0.15
         })
         .to(packetRef.current, {
-          x: 40,
-          y: 55,
+          x: 58,
+          y: 65,
           duration: 0.8,
           ease: "power2.inOut"
         });
@@ -192,7 +192,7 @@ export default function IsolationVsCommunication() {
         {/* Schematic Canvas (Left) */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px] overflow-hidden">
           
-          <div className="w-full max-w-sm flex flex-col items-center justify-center relative min-h-[220px]">
+          <div className="w-full max-w-sm relative min-h-[220px] mx-auto">
             
             {/* Visual Islands tracks */}
             
@@ -210,7 +210,7 @@ export default function IsolationVsCommunication() {
 
             {/* Invisible collision wall animation */}
             {!hasBridge && collisionActive && (
-              <div className="absolute left-[165px] top-[40px] w-1 h-10 border-l border-red-500 animate-ping opacity-75 z-20 pointer-events-none" />
+              <div className="absolute left-[175px] top-[40px] w-1 h-10 border-l border-red-500 animate-ping opacity-75 z-20 pointer-events-none" />
             )}
 
             {/* Backend Island (Right) */}
@@ -237,7 +237,7 @@ export default function IsolationVsCommunication() {
             {/* Traveling packet orb */}
             <div 
               ref={packetRef}
-              className="absolute w-2 h-2 rounded-full z-20 opacity-0 scale-0 shadow-[0_0_8px_currentColor]"
+              className="absolute w-2.5 h-2.5 rounded-full left-0 top-0 z-20 opacity-0 scale-0 shadow-[0_0_8px_currentColor]"
             />
 
           </div>
