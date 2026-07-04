@@ -455,8 +455,22 @@ export default function OverlayDriver() {
             <div className="bg-[#1a1a1e] px-3.5 py-1.5 border-b border-zinc-850 flex items-center shrink-0">
               <span className="text-[8px] font-mono text-zinc-500 font-bold">trace output</span>
             </div>
-            <div className="p-3 font-mono text-[9px] text-zinc-450 leading-relaxed overflow-y-auto flex-1">
-              {terminalLog}
+            <div className="p-3 font-mono text-[9px] leading-relaxed overflow-y-auto flex-1 flex flex-col gap-0.5 select-text">
+              {terminalLog.split("\n").map((line, i) => {
+                let className = "text-zinc-400";
+                if (line.includes("[SUCCESS]") || line.toLowerCase().includes("success") || line.includes("✓") || line.toLowerCase().includes("created") || line.toLowerCase().includes("copied") || line.toLowerCase().includes("masked")) {
+                  className = "text-green-400 font-semibold";
+                } else if (line.includes("[FAILURE]") || line.includes("[WARNING]") || line.toLowerCase().includes("error") || line.toLowerCase().includes("failed") || line.includes("⚠")) {
+                  className = "text-red-400 font-semibold";
+                } else if (line.includes("$") || line.includes("touch") || line.includes("vi") || line.includes("rm")) {
+                  className = "text-zinc-550 font-mono";
+                }
+                return (
+                  <div key={i} className={className}>
+                    {line}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

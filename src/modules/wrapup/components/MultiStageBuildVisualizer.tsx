@@ -255,8 +255,22 @@ export default function MultiStageBuildVisualizer() {
             <div className="bg-[#1a1a1e] px-3.5 py-1.5 border-b border-zinc-850 flex items-center shrink-0">
               <span className="text-[7.5px] font-mono text-zinc-550 font-bold">Terminal logs:</span>
             </div>
-            <div className="p-3 font-mono text-[9px] text-zinc-400 leading-relaxed flex-1 overflow-y-auto">
-              {terminalLog}
+            <div className="p-3 font-mono text-[9px] leading-relaxed flex-1 overflow-y-auto flex flex-col gap-0.5 select-text">
+              {terminalLog.split("\n").map((line, i) => {
+                let className = "text-zinc-400";
+                if (line.includes("[SUCCESS]") || line.toLowerCase().includes("success") || line.toLowerCase().includes("built successfully") || line.toLowerCase().includes("exporting") || line.toLowerCase().includes("finished") || line.includes("✓")) {
+                  className = "text-green-400 font-semibold";
+                } else if (line.includes("[FAILURE]") || line.includes("[WARNING]") || line.toLowerCase().includes("error") || line.toLowerCase().includes("failed") || line.includes("⚠")) {
+                  className = "text-red-400 font-semibold";
+                } else if (line.includes("$") || line.includes("docker") || line.includes("STEP")) {
+                  className = "text-zinc-550 font-mono";
+                }
+                return (
+                  <div key={i} className={className}>
+                    {line}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

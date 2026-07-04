@@ -619,8 +619,22 @@ export default function DockerArchitecture() {
             <span className="text-[9px] font-mono text-zinc-500">console output</span>
           </div>
           
-          <div className="p-3 font-mono text-[9px] text-zinc-450 overflow-y-auto leading-relaxed flex-1 bg-[#0d0d0e]">
-            {terminalLog}
+          <div className="p-3 font-mono text-[9px] leading-relaxed overflow-y-auto flex-1 bg-[#0d0d0e] flex flex-col gap-0.5 select-text">
+            {terminalLog.split("\n").map((line, i) => {
+              let className = "text-zinc-400";
+              if (line.includes("[SUCCESS]") || line.toLowerCase().includes("success") || line.includes("✓") || line.toLowerCase().includes("pulled") || line.toLowerCase().includes("running")) {
+                className = "text-green-400 font-semibold";
+              } else if (line.includes("[FAILURE]") || line.includes("[WARNING]") || line.toLowerCase().includes("error") || line.toLowerCase().includes("failed") || line.includes("⚠")) {
+                className = "text-red-400 font-semibold";
+              } else if (line.includes("$") || line.includes("docker")) {
+                className = "text-zinc-550 font-mono";
+              }
+              return (
+                <div key={i} className={className}>
+                  {line}
+                </div>
+              );
+            })}
           </div>
           
           {/* Action reset controls overlay */}
