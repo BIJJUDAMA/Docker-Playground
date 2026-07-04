@@ -3,18 +3,18 @@
 import React, { useState } from "react";
 import NetworkBuilder from "./components/NetworkBuilder";
 import PacketJourney from "./components/PacketJourney";
-import PortMappingLab from "./components/PortMappingLab";
-import DnsServiceDiscovery from "./components/DnsServiceDiscovery";
-import NetworkDebugger from "./components/NetworkDebugger";
+import IsolationVsCommunication from "./components/IsolationVsCommunication";
+import LivingNetworkMap from "./components/LivingNetworkMap";
+import CommunicationSandbox from "./components/CommunicationSandbox";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
 const STEPS = [
   { id: 0, label: "Network Builder" },
   { id: 1, label: "Packet Journey" },
-  { id: 2, label: "Port Mapping Lab" },
-  { id: 3, label: "DNS & Service Discovery" },
-  { id: 4, label: "Network Debugger" }
+  { id: 2, label: "Isolation vs Communication" },
+  { id: 3, label: "Living Network Map" },
+  { id: 4, label: "Communication Sandbox" }
 ];
 
 export default function NetworkingModule() {
@@ -51,9 +51,9 @@ export default function NetworkingModule() {
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {activeStep === 0 && <NetworkBuilder />}
         {activeStep === 1 && <PacketJourney />}
-        {activeStep === 2 && <PortMappingLab />}
-        {activeStep === 3 && <DnsServiceDiscovery />}
-        {activeStep === 4 && <NetworkDebugger />}
+        {activeStep === 2 && <IsolationVsCommunication />}
+        {activeStep === 3 && <LivingNetworkMap />}
+        {activeStep === 4 && <CommunicationSandbox />}
       </div>
 
     </div>
