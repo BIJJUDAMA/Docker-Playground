@@ -11,12 +11,12 @@ import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
 const STEPS = [
-  { id: 0, label: "1. Explore the Image" },
-  { id: 1, label: "2. Create Containers" },
-  { id: 2, label: "3. Inside a Container" },
-  { id: 3, label: "4. Container Lifecycle" },
-  { id: 4, label: "5. Image vs Container" },
-  { id: 5, label: "6. Behind the Scenes" }
+  { id: 0, label: "Explore the Image" },
+  { id: 1, label: "Create Containers" },
+  { id: 2, label: "Inside a Container" },
+  { id: 3, label: "Container Lifecycle" },
+  { id: 4, label: "Image vs Container" },
+  { id: 5, label: "Behind the Scenes" }
 ];
 
 export default function ImagesModule() {
