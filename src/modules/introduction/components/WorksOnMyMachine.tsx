@@ -227,7 +227,7 @@ export default function WorksOnMyMachine() {
             subtitle="macOS · Python 3.10"
             className="flex-1 w-full relative z-15"
           >
-            <div className="font-mono text-[8px] text-[#A1A1AA] select-text leading-normal bg-[#090909] p-2.5 rounded-[6px] border border-[#232323] overflow-hidden min-h-[44px]">
+            <div className="font-mono text-[8px] text-[#A1A1AA] select-text leading-normal bg-[#090909] p-2.5 rounded-[6px] border border-[#232323] overflow-hidden h-[88px]">
               <div ref={devConsoleRef} className="whitespace-pre-line">Ready to run app...</div>
             </div>
           </NodePrimitive>
@@ -240,7 +240,7 @@ export default function WorksOnMyMachine() {
             subtitle="Ubuntu · Python 3.10"
             className="flex-1 w-full relative z-15"
           >
-            <div className="font-mono text-[8px] text-[#A1A1AA] select-text leading-normal bg-[#090909] p-2.5 rounded-[6px] border border-[#232323] overflow-hidden min-h-[44px]">
+            <div className="font-mono text-[8px] text-[#A1A1AA] select-text leading-normal bg-[#090909] p-2.5 rounded-[6px] border border-[#232323] overflow-hidden h-[88px]">
               <div ref={qaConsoleRef} className="whitespace-pre-line">Awaiting deployment...</div>
             </div>
           </NodePrimitive>
@@ -253,7 +253,7 @@ export default function WorksOnMyMachine() {
             subtitle="RedHat · Python 3.8"
             className="flex-1 w-full relative z-15"
           >
-            <div className="font-mono text-[8px] text-[#A1A1AA] select-text leading-normal bg-[#090909] p-2.5 rounded-[6px] border border-[#232323] overflow-hidden min-h-[44px]">
+            <div className="font-mono text-[8px] text-[#A1A1AA] select-text leading-normal bg-[#090909] p-2.5 rounded-[6px] border border-[#232323] overflow-hidden h-[88px]">
               <div ref={prodConsoleRef} className="whitespace-pre-line">Awaiting deployment...</div>
             </div>
           </NodePrimitive>
