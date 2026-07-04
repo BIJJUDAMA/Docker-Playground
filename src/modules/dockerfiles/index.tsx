@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import DockerfileBuilder from "./components/DockerfileBuilder";
-import BuildImage from "../images/components/BuildImage";
+import BuildImage from "./components/BuildImage";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 

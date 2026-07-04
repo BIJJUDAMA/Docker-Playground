@@ -1,26 +1,22 @@
 "use client";
 
 import React, { useState } from "react";
-import BuildImage from "./components/BuildImage";
 import ExploreImage from "./components/ExploreImage";
 import CreateContainers from "./components/CreateContainers";
 import InsideContainer from "./components/InsideContainer";
 import ContainerLifecycle from "./components/ContainerLifecycle";
-import Persistence from "./components/Persistence";
 import ImageVsContainer from "./components/ImageVsContainer";
 import BehindScenes from "./components/BehindScenes";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
 const STEPS = [
-  { id: 0, label: "1. Build the Image" },
-  { id: 1, label: "2. Explore the Image" },
-  { id: 2, label: "3. Create Containers" },
-  { id: 3, label: "4. Inside a Container" },
-  { id: 4, label: "5. Container Lifecycle" },
-  { id: 5, label: "6. Persistence" },
-  { id: 6, label: "7. Image vs Container" },
-  { id: 7, label: "8. Behind the Scenes" }
+  { id: 0, label: "1. Explore the Image" },
+  { id: 1, label: "2. Create Containers" },
+  { id: 2, label: "3. Inside a Container" },
+  { id: 3, label: "4. Container Lifecycle" },
+  { id: 4, label: "5. Image vs Container" },
+  { id: 5, label: "6. Behind the Scenes" }
 ];
 
 export default function ImagesModule() {
@@ -55,14 +51,12 @@ export default function ImagesModule() {
 
       {/* Render the active visualization component */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-        {activeStep === 0 && <BuildImage />}
-        {activeStep === 1 && <ExploreImage />}
-        {activeStep === 2 && <CreateContainers />}
-        {activeStep === 3 && <InsideContainer />}
-        {activeStep === 4 && <ContainerLifecycle />}
-        {activeStep === 5 && <Persistence />}
-        {activeStep === 6 && <ImageVsContainer />}
-        {activeStep === 7 && <BehindScenes />}
+        {activeStep === 0 && <ExploreImage />}
+        {activeStep === 1 && <CreateContainers />}
+        {activeStep === 2 && <InsideContainer />}
+        {activeStep === 3 && <ContainerLifecycle />}
+        {activeStep === 4 && <ImageVsContainer />}
+        {activeStep === 5 && <BehindScenes />}
       </div>
 
     </div>

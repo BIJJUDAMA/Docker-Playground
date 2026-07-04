@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import VolumeTypes from "./components/VolumeTypes";
-import Persistence from "../images/components/Persistence";
+import Persistence from "./components/Persistence";
 import StorageComparison from "./components/StorageComparison";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
