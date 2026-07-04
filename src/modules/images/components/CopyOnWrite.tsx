@@ -9,26 +9,32 @@ import VisualCanvas from "@/components/layout/VisualCanvas";
 
 export default function CopyOnWrite() {
   const [animationState, setAnimationState] = useState<"idle" | "reading" | "copying" | "modified">("idle");
-  const [terminalLog, setTerminalLog] = useState("Click an action in the sandbox controller to trace read/write events...");
+  const [terminalLog, setTerminalLog] = useState("Follow the steps below to observe how container reading and editing are handled.");
   
   const containerRef = useRef<HTMLDivElement>(null);
   const cloneFileRef = useRef<HTMLDivElement>(null);
   const readPulseRef = useRef<HTMLDivElement>(null);
-  
+  const indexHtmlRef = useRef<HTMLDivElement>(null);
+  const readOnlyAppJsRef = useRef<HTMLDivElement>(null);
+
+  const [packetText, setPacketText] = useState<string>("REQ");
   const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
 
   useAnimationControls(timeline);
 
   const handleReset = useCallback(() => {
     setAnimationState("idle");
-    setTerminalLog("Click an action in the sandbox controller to trace read/write events...");
+    setTerminalLog("Follow the steps below to observe how container reading and editing are handled.");
     
     if (timeline) {
       timeline.pause().progress(0);
     }
 
     gsap.set(cloneFileRef.current, { scale: 0, opacity: 0, x: 0, y: 0 });
-    gsap.set(readPulseRef.current, { scale: 0, opacity: 0, y: 0 });
+    gsap.set(readPulseRef.current, { scale: 0, opacity: 0, x: 0, y: 0 });
+    gsap.set(readOnlyAppJsRef.current, { scale: 1, borderColor: "", opacity: 1 });
+    gsap.set(indexHtmlRef.current, { scale: 1, borderColor: "", opacity: 1 });
+    setPacketText("REQ");
   }, [timeline]);
 
   const handleRead = () => {
@@ -48,16 +54,35 @@ export default function CopyOnWrite() {
 
     setTimeline(tl);
 
-    tl.set(readPulseRef.current, { scale: 1, opacity: 1, y: 0, backgroundColor: "#FAFAFA" })
+    tl.set(readPulseRef.current, { x: 0, y: 0, scale: 1, opacity: 1 })
       .to(readPulseRef.current, {
-        y: 110,
-        duration: 0.8,
+        x: -56,
+        y: 120,
+        duration: 0.7,
+        ease: "power2.inOut",
+        onStart: () => setPacketText("REQ")
+      })
+      .to(indexHtmlRef.current, {
+        scale: 1.08,
+        borderColor: "#FAFAFA",
+        duration: 0.25,
+        yoyo: true,
+        repeat: 1
+      })
+      .to(readPulseRef.current, {
+        duration: 0.1,
+        onStart: () => setPacketText("OK")
+      })
+      .to(readPulseRef.current, {
+        x: 0,
+        y: 0,
+        duration: 0.7,
         ease: "power2.inOut"
       })
       .to(readPulseRef.current, {
-        scale: 1.5,
+        scale: 0,
         opacity: 0,
-        duration: 0.3
+        duration: 0.2
       });
   };
 
@@ -78,19 +103,46 @@ export default function CopyOnWrite() {
 
     setTimeline(tl);
 
-    gsap.set(cloneFileRef.current, { x: 75, y: 110, scale: 0.8, opacity: 0, backgroundColor: "#1a1a1e" });
+    gsap.set(cloneFileRef.current, { x: 56, y: 120, scale: 0.85, opacity: 0 });
 
-    tl.to(cloneFileRef.current, {
-      opacity: 1,
-      scale: 1,
-      duration: 0.4
-    })
-    .to(cloneFileRef.current, {
-      x: 0,
-      y: 0,
-      duration: 1.2,
-      ease: "power2.inOut"
-    });
+    tl.set(readPulseRef.current, { x: 0, y: 0, scale: 1, opacity: 1 })
+      .to(readPulseRef.current, {
+        x: 56,
+        y: 120,
+        duration: 0.7,
+        ease: "power2.inOut",
+        onStart: () => setPacketText("REQ")
+      })
+      .to(readOnlyAppJsRef.current, {
+        scale: 1.08,
+        borderColor: "#FAFAFA",
+        duration: 0.25,
+        yoyo: true,
+        repeat: 1
+      })
+      .to(readPulseRef.current, {
+        scale: 0,
+        opacity: 0,
+        duration: 0.15
+      })
+      .to(cloneFileRef.current, {
+        opacity: 0.6,
+        duration: 0.2
+      })
+      .to(cloneFileRef.current, {
+        x: 0,
+        y: 0,
+        scale: 1,
+        opacity: 1,
+        duration: 1.0,
+        ease: "power2.inOut"
+      })
+      .to(cloneFileRef.current, {
+        scale: 1.08,
+        duration: 0.15,
+        yoyo: true,
+        repeat: 1
+      });
   };
 
   return (
@@ -123,7 +175,7 @@ export default function CopyOnWrite() {
 
           <div className="w-full flex-1 flex flex-col gap-8 justify-center max-w-sm relative py-6 min-h-[250px]">
             
-            {/* 1. Writeable Container Layer */}
+            {/* 1. Writable Container Layer */}
             <div className="rounded-[12px] border border-dashed border-zinc-800 bg-[#0d0d0e] p-4 min-h-[80px] relative flex flex-col justify-center items-center">
               <span className="absolute top-2.5 left-3 text-[7px] uppercase tracking-wider font-bold text-zinc-450">
                 Writable Container Layer (UpperDir)
@@ -132,20 +184,28 @@ export default function CopyOnWrite() {
               {/* Spawned clone file block */}
               <div 
                 ref={cloneFileRef}
-                className="absolute w-28 py-2 rounded-[9px] border border-zinc-700 bg-zinc-800 text-white flex items-center justify-center gap-1.5 shadow-sm pointer-events-none opacity-0 scale-0 z-20"
+                className="absolute w-28 py-2 rounded-[9px] border border-zinc-700 bg-zinc-850 text-white flex items-center justify-center gap-1.5 shadow-sm pointer-events-none opacity-0 scale-0 z-20"
               >
                 <FileText className="w-3.5 h-3.5 text-zinc-300" />
                 <div className="flex flex-col">
                   <span className="text-[9px] font-bold text-zinc-200 font-mono">app.js</span>
-                  <span className="text-[7px] text-zinc-450 uppercase font-bold">Modified</span>
+                  <span className="text-[7px] text-[#FAFAFA] uppercase font-bold">Modified</span>
                 </div>
               </div>
 
+              {/* Centered request packet orb */}
+              <div 
+                ref={readPulseRef}
+                className="absolute w-5 h-5 rounded-full bg-white text-black text-[6.5px] font-extrabold font-mono shadow-[0_0_8px_rgba(255,255,255,0.7)] opacity-0 scale-0 z-30 pointer-events-none flex items-center justify-center select-none"
+              >
+                {packetText}
+              </div>
+
               {animationState === "idle" && (
-                <span className="text-[9px] text-zinc-600 font-mono italic">Writable layer is empty</span>
+                <span className="text-[9px] text-zinc-650 font-mono italic">Writable layer is empty</span>
               )}
               {animationState === "reading" && (
-                <span className="text-[9px] text-zinc-500 font-mono italic animate-pulse">Reading file from layers...</span>
+                <span className="text-[9px] text-zinc-500 font-mono italic animate-pulse">Reading index.html...</span>
               )}
               {animationState === "copying" && (
                 <span className="text-[9px] text-zinc-450 font-mono italic animate-pulse">Cloning app.js to UpperDir...</span>
@@ -155,12 +215,6 @@ export default function CopyOnWrite() {
             {/* Connection pathway marker */}
             <div className="absolute top-[80px] left-1/2 -translate-x-1/2 bottom-[125px] w-0.5 border-l border-dashed border-zinc-800/40 pointer-events-none z-0" />
 
-            {/* Reading pulse element */}
-            <div 
-              ref={readPulseRef}
-              className="absolute top-[50px] left-[155px] w-4 h-4 rounded-full bg-white shadow-md opacity-0 scale-0 z-10 pointer-events-none"
-            />
-
             {/* 2. Read-Only Image Layers */}
             <div className="rounded-[12px] border border-zinc-800/40 bg-[#0d0d0e] p-4 min-h-[110px] relative flex flex-col justify-center shadow-sm">
               <span className="absolute top-2.5 left-3 text-[7px] uppercase tracking-wider font-bold text-zinc-500">
@@ -169,23 +223,29 @@ export default function CopyOnWrite() {
 
               <div className="flex gap-4 items-center justify-center mt-3">
                 {/* index.html block */}
-                <div className="w-24 py-2.5 rounded-[9px] border border-zinc-850 bg-[#1a1a1e] flex flex-col items-center justify-center gap-0.5 z-10 relative">
+                <div 
+                  ref={indexHtmlRef}
+                  className="w-24 py-2.5 rounded-[9px] border border-zinc-850 bg-[#1a1a1e] flex flex-col items-center justify-center gap-0.5 z-10 relative transition-all duration-300"
+                >
                   <FileText className="w-3.5 h-3.5 text-zinc-450" />
                   <span className="text-[9px] font-bold text-zinc-300 font-mono">index.html</span>
                   <span className="text-[7px] text-zinc-550 font-bold uppercase tracking-wider font-mono">Read-Only</span>
                 </div>
 
                 {/* app.js block */}
-                <div className={cn(
-                  "w-24 py-2.5 rounded-[9px] border flex flex-col items-center justify-center gap-0.5 z-10 transition-colors duration-300 relative",
-                  animationState === "modified" 
-                    ? "bg-[#ff453a]/5 border-[#ff453a]/15 text-zinc-500" 
-                    : "bg-[#1a1a1e] border-zinc-850 text-zinc-400"
-                )}>
+                <div 
+                  ref={readOnlyAppJsRef}
+                  className={cn(
+                    "w-24 py-2.5 rounded-[9px] border flex flex-col items-center justify-center gap-0.5 z-10 transition-all duration-300 relative",
+                    animationState === "modified" 
+                      ? "bg-[#121214] border-zinc-900 text-zinc-650 opacity-30" 
+                      : "bg-[#1a1a1e] border-zinc-850 text-zinc-400"
+                  )}
+                >
                   <FileText className="w-3.5 h-3.5 text-zinc-550" />
                   <span className="text-[9px] font-bold text-zinc-300 font-mono">app.js</span>
                   {animationState === "modified" ? (
-                    <span className="text-[7px] text-[#ff453a] font-bold uppercase tracking-wider font-mono animate-pulse">Shadowed</span>
+                    <span className="text-[7px] text-zinc-500 font-bold uppercase tracking-wider font-mono">Shadowed</span>
                   ) : (
                     <span className="text-[7px] text-zinc-550 font-bold uppercase tracking-wider font-mono">Read-Only</span>
                   )}
