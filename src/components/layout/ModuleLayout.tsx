@@ -27,7 +27,7 @@ export default function ModuleLayout({ module, children }: ModuleLayoutProps) {
       
       {/* Left Area: Visual Playground (Main Content) - Edge-to-Edge */}
       <div className="flex-1 flex flex-col min-w-0 border-b lg:border-b-0 lg:border-r border-[#232323] h-full relative">
-        <div className="flex-1 min-h-0 relative flex flex-col h-full bg-[#0D0D0D]">
+        <div id="visual-playground-wrapper" className="flex-1 min-h-0 relative flex flex-col h-full bg-[#0D0D0D]">
           {children}
         </div>
       </div>
