@@ -231,8 +231,22 @@ export default function EnvironmentVariables() {
             <div className="bg-[#1a1a1e] px-3.5 py-1.5 border-b border-zinc-850 flex items-center shrink-0 select-none">
               <span className="text-[8px] font-mono text-zinc-500">console stdout</span>
             </div>
-            <div className="p-3 font-mono text-[9px] text-zinc-450 leading-relaxed overflow-y-auto flex-1 select-text">
-              {terminalLog}
+            <div className="p-3 font-mono text-[9px] leading-relaxed overflow-y-auto flex-1 select-text flex flex-col gap-0.5">
+              {terminalLog.split("\n").map((line, i) => {
+                let className = "text-zinc-400";
+                if (line.includes("[SUCCESS]") || line.toLowerCase().includes("success") || line.includes("✓") || line.toLowerCase().includes("connected") || line.toLowerCase().includes("ok")) {
+                  className = "text-green-400 font-semibold";
+                } else if (line.includes("[FAILURE]") || line.includes("[WARNING]") || line.toLowerCase().includes("error") || line.toLowerCase().includes("fatal") || line.toLowerCase().includes("failed") || line.includes("⚠")) {
+                  className = "text-red-400 font-semibold";
+                } else if (line.includes("$") || line.toLowerCase().includes("test") || line.toLowerCase().includes("checking")) {
+                  className = "text-zinc-550 font-mono";
+                }
+                return (
+                  <div key={i} className={className}>
+                    {line}
+                  </div>
+                );
+              })}
             </div>
           </div>
 

@@ -486,7 +486,23 @@ export default function DockerfileBuilder() {
             className="p-3 bg-[#0d0d0e] rounded-[10px] border border-zinc-850 font-mono text-[9px] text-zinc-400 min-h-[75px] select-text flex-1"
           >
             <span className="text-[7.5px] uppercase font-bold text-zinc-550 block mb-1">Terminal compilation output:</span>
-            <code className="text-zinc-300 leading-normal block whitespace-pre-wrap">{terminalOutput}</code>
+            <code className="leading-normal block whitespace-pre-wrap flex flex-col gap-0.5">
+              {terminalOutput.split("\n").map((line, i) => {
+                let className = "text-zinc-400";
+                if (line.toLowerCase().includes("successfully") || line.toLowerCase().includes("exporting") || line.toLowerCase().includes("finished") || line.toLowerCase().includes("cached") || line.includes("✓") || line.toLowerCase().includes("success")) {
+                  className = "text-green-400 font-semibold";
+                } else if (line.toLowerCase().includes("error") || line.toLowerCase().includes("failed") || line.toLowerCase().includes("fatal") || line.includes("⚠") || line.toLowerCase().includes("warning")) {
+                  className = "text-red-400 font-semibold";
+                } else if (line.includes("$") || line.includes("STEP") || line.includes("Building")) {
+                  className = "text-zinc-550 font-mono";
+                }
+                return (
+                  <div key={i} className={className}>
+                    {line}
+                  </div>
+                );
+              })}
+            </code>
           </div>
 
           {/* Section 3: Layer Details Inspector */}
