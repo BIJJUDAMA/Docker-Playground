@@ -30,10 +30,9 @@ export default function VisualCanvas({
   onStepForward,
   onStepBack,
 }: VisualCanvasProps) {
-  const { isPlaying, speed, setPlaying, setSpeed, progress, prevSlug, nextSlug, setActiveExplanation } = useAnimationStore();
+  const { isPlaying, speed, setPlaying, setSpeed, progress, prevSlug, nextSlug, setActiveExplanation, isFullscreen, setIsFullscreen } = useAnimationStore();
   const { replay, reset } = useAnimationControls(timeline);
 
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const toggleFullscreen = () => {

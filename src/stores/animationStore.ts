@@ -11,6 +11,7 @@ interface AnimationState {
   nextSlug: string | null;
   activeStep: number;
   maxSteps: number;
+  isFullscreen: boolean;
   setPlaying: (playing: boolean) => void;
   setSpeed: (speed: number) => void;
   setProgress: (progress: number) => void;
@@ -21,6 +22,7 @@ interface AnimationState {
   setMaxSteps: (max: number) => void;
   nextStep: () => void;
   prevStep: () => void;
+  setIsFullscreen: (fullscreen: boolean) => void;
   resetControls: () => void;
 }
 
@@ -34,6 +36,7 @@ export const useAnimationStore = create<AnimationState>((set) => ({
   nextSlug: null,
   activeStep: 0,
   maxSteps: 1,
+  isFullscreen: false,
   setPlaying: (playing) => set({ isPlaying: playing }),
   setSpeed: (speed) => set({ speed: speed }),
   setProgress: (progress) => set({ progress: progress }),
@@ -44,5 +47,6 @@ export const useAnimationStore = create<AnimationState>((set) => ({
   setMaxSteps: (max) => set({ maxSteps: max }),
   nextStep: () => set((state) => ({ activeStep: Math.min(state.activeStep + 1, state.maxSteps - 1) })),
   prevStep: () => set((state) => ({ activeStep: Math.max(state.activeStep - 1, 0) })),
+  setIsFullscreen: (fullscreen) => set({ isFullscreen: fullscreen }),
   resetControls: () => set({ isPlaying: false, progress: 0, activeTimeline: null, activeExplanation: null, prevSlug: null, nextSlug: null, activeStep: 0, maxSteps: 1 }),
 }));

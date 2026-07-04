@@ -53,7 +53,7 @@ export default function NavControls({ prevSlug, nextSlug }: NavControlsProps) {
       </Button>
 
       <Button
-        variant="outline"
+        variant="default"
         size="sm"
         disabled={!hasNext}
         onClick={handleNextClick}
