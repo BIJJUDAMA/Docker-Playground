@@ -36,45 +36,43 @@ export default function DeleteSimulator() {
   };
 
   const handleDelete = (type: ObjectType) => {
+    // Reset to base pristine states first
+    const baseStates: Record<ObjectType, ObjectState> = {
+      image: { alive: true, status: "idle" },
+      container: { alive: true, status: "running" },
+      volume: { alive: true, status: "idle" },
+      host: { alive: true, status: "idle" }
+    };
+
     setActiveDeletion(type);
     
-    setStates(prev => {
-      const next = { ...prev };
-      
-      switch (type) {
-        case "container":
-          // Container dies, everything else stays
-          next.container = { alive: false, status: "idle" };
-          setTerminalLog("host$ docker rm -f app-container\n[CONSEQUENCE] Container destroyed. Local writable layers purged. Image, volume, and host folder remain completely safe.");
-          break;
-          
-        case "volume":
-          // Volume dies, database files are deleted, container crashes/fails
-          next.volume = { alive: false, status: "idle" };
-          if (next.container.alive) {
-            next.container.status = "crashed";
-          }
-          setTerminalLog("host$ docker volume rm db_data\n[CONSEQUENCE] Volume storage purged from host disk. The running container immediately loses connection, throwing database connection crash errors!");
-          break;
-          
-        case "image":
-          // Image deleted. Running container stays active, but cannot rebuild
-          next.image = { alive: false, status: "idle" };
-          setTerminalLog("host$ docker rmi node:22\n[CONSEQUENCE] Base image removed from storage. Running containers are unaffected (cached in memory), but you cannot start new replicas of this image later.");
-          break;
-          
-        case "host":
-          // Host folder deleted, bind mount container crashes
-          next.host = { alive: false, status: "idle" };
-          if (next.container.alive) {
-            next.container.status = "crashed";
-          }
-          setTerminalLog("host$ rm -rf /src\n[CONSEQUENCE] Host folder deleted. The bind-mounted container instantly loses source files and crashes due to missing entrypoint execution paths!");
-          break;
-      }
-      
-      return next;
-    });
+    const next = { ...baseStates };
+    
+    switch (type) {
+      case "container":
+        next.container = { alive: false, status: "idle" };
+        setTerminalLog("host$ docker rm -f app-container\n[CONSEQUENCE] Container destroyed. Local writable layers purged. Image, volume, and host folder remain completely safe.");
+        break;
+        
+      case "volume":
+        next.volume = { alive: false, status: "idle" };
+        next.container.status = "crashed";
+        setTerminalLog("host$ docker volume rm db_data\n[CONSEQUENCE] Volume storage purged from host disk. The running container immediately loses connection, throwing database connection crash errors!");
+        break;
+        
+      case "image":
+        next.image = { alive: false, status: "idle" };
+        setTerminalLog("host$ docker rmi node:22\n[CONSEQUENCE] Base image removed from storage. Running containers are unaffected (cached in memory), but you cannot start new replicas of this image later.");
+        break;
+        
+      case "host":
+        next.host = { alive: false, status: "idle" };
+        next.container.status = "crashed";
+        setTerminalLog("host$ rm -rf /src\n[CONSEQUENCE] Host folder deleted. The bind-mounted container instantly loses source files and crashes due to missing entrypoint execution paths!");
+        break;
+    }
+    
+    setStates(next);
   };
 
   return (
@@ -167,29 +165,45 @@ export default function DeleteSimulator() {
           <div className="flex flex-col gap-2 flex-1 justify-center select-none font-sans">
             <button
               onClick={() => handleDelete("container")}
-              disabled={!states.container.alive}
-              className="w-full py-2 rounded-[8px] text-[9.5px] font-bold bg-[#1a1a1e] border border-zinc-850 hover:border-red-900/30 hover:text-red-400 disabled:opacity-40 cursor-pointer flex items-center justify-center gap-1.5"
+              className={cn(
+                "w-full py-2 rounded-[8px] text-[9.5px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none",
+                activeDeletion === "container"
+                  ? "bg-white text-black border-transparent shadow-sm"
+                  : "bg-[#1a1a1e] border-zinc-850 text-zinc-350 hover:border-zinc-700 hover:text-white"
+              )}
             >
               Delete Container
             </button>
             <button
               onClick={() => handleDelete("volume")}
-              disabled={!states.volume.alive}
-              className="w-full py-2 rounded-[8px] text-[9.5px] font-bold bg-[#1a1a1e] border border-zinc-850 hover:border-red-900/30 hover:text-red-400 disabled:opacity-40 cursor-pointer flex items-center justify-center gap-1.5"
+              className={cn(
+                "w-full py-2 rounded-[8px] text-[9.5px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none",
+                activeDeletion === "volume"
+                  ? "bg-white text-black border-transparent shadow-sm"
+                  : "bg-[#1a1a1e] border-zinc-850 text-zinc-350 hover:border-zinc-700 hover:text-white"
+              )}
             >
               Delete Volume
             </button>
             <button
               onClick={() => handleDelete("image")}
-              disabled={!states.image.alive}
-              className="w-full py-2 rounded-[8px] text-[9.5px] font-bold bg-[#1a1a1e] border border-zinc-850 hover:border-red-900/30 hover:text-red-400 disabled:opacity-40 cursor-pointer flex items-center justify-center gap-1.5"
+              className={cn(
+                "w-full py-2 rounded-[8px] text-[9.5px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none",
+                activeDeletion === "image"
+                  ? "bg-white text-black border-transparent shadow-sm"
+                  : "bg-[#1a1a1e] border-zinc-850 text-zinc-350 hover:border-zinc-700 hover:text-white"
+              )}
             >
               Delete Image
             </button>
             <button
               onClick={() => handleDelete("host")}
-              disabled={!states.host.alive}
-              className="w-full py-2 rounded-[8px] text-[9.5px] font-bold bg-[#1a1a1e] border border-zinc-850 hover:border-red-900/30 hover:text-red-400 disabled:opacity-40 cursor-pointer flex items-center justify-center gap-1.5"
+              className={cn(
+                "w-full py-2 rounded-[8px] text-[9.5px] font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 select-none",
+                activeDeletion === "host"
+                  ? "bg-white text-black border-transparent shadow-sm"
+                  : "bg-[#1a1a1e] border-zinc-850 text-zinc-350 hover:border-zinc-700 hover:text-white"
+              )}
             >
               Delete Host Folder
             </button>
