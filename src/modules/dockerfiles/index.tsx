@@ -2,13 +2,17 @@
 
 import React, { useState } from "react";
 import DockerfileBuilder from "./components/DockerfileBuilder";
-import BuildImage from "./components/BuildImage";
+import LayerCachePlayground from "./components/LayerCachePlayground";
+import DockerfileOptimizer from "./components/DockerfileOptimizer";
+import DockerBuildUnderHood from "./components/DockerBuildUnderHood";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
 const STEPS = [
-  { id: 0, label: "Dockerfile Anatomy" },
-  { id: 1, label: "Build Timeline" }
+  { id: 0, label: "Dockerfile Builder" },
+  { id: 1, label: "Layer Cache Playground" },
+  { id: 2, label: "Dockerfile Optimizer" },
+  { id: 3, label: "Docker Build Under the Hood" }
 ];
 
 export default function DockerfilesModule() {
@@ -33,7 +37,7 @@ export default function DockerfilesModule() {
               "text-xs font-semibold py-3 px-4 border-b-2 -mb-[1px] transition-all whitespace-nowrap focus:outline-none cursor-pointer",
               activeStep === step.id
                 ? "border-[#FAFAFA] text-[#FAFAFA] font-bold"
-                : "border-transparent text-zinc-500 hover:text-zinc-350"
+                : "border-transparent text-zinc-550 hover:text-zinc-350"
             )}
           >
             {step.label}
@@ -44,7 +48,9 @@ export default function DockerfilesModule() {
       {/* Render the active visualization component */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {activeStep === 0 && <DockerfileBuilder />}
-        {activeStep === 1 && <BuildImage />}
+        {activeStep === 1 && <LayerCachePlayground />}
+        {activeStep === 2 && <DockerfileOptimizer />}
+        {activeStep === 3 && <DockerBuildUnderHood />}
       </div>
 
     </div>

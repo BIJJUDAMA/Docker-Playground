@@ -1,277 +1,517 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
+import gsap from "gsap";
+import { useAnimationControls } from "@/hooks/useAnimationControls";
 import { cn } from "@/lib/utils";
+import { HelpCircle, Play, Pause, RotateCcw, ArrowRight, CheckCircle, FileText, Cpu, Layers, HardDrive } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
-import { HelpCircle } from "lucide-react";
 
-interface Instruction {
+interface BuildInstruction {
   cmd: string;
   arg: string;
   desc: string;
-  layerName: string;
-  layerType: "base" | "config" | "copy" | "install" | "metadata";
+  layerSize: string;
+  layerFiles: string[];
+  isCached: boolean;
+  visualEffect: string;
 }
 
-const DOCKERFILE_STEPS: Instruction[] = [
-  {
-    cmd: "ARG",
-    arg: "NODE_VERSION=18-alpine",
-    desc: "Defines build-time variables that users can pass at build-time using --build-arg. Unlike ENV variables, ARG variables are not available once the container image has finished building.",
-    layerName: "Build ARG: NODE_VERSION",
-    layerType: "config"
-  },
+const DOCKERFILE_INSTRUCTIONS: BuildInstruction[] = [
   {
     cmd: "FROM",
-    arg: "node:${NODE_VERSION}",
-    desc: "Specifies the starting parent base image. Every valid Dockerfile must begin with FROM. It parses the build-time variable NODE_VERSION to resolve the final parent base image from a registry.",
-    layerName: "Base OS: node:18-alpine",
-    layerType: "base"
-  },
-  {
-    cmd: "LABEL",
-    arg: 'maintainer="admin@app.com" version="1.0"',
-    desc: "Adds metadata key-value labels to the image. Perfect for documenting ownership, licenses, or building pipelines. It does not create new filesystem layers, only metadata additions.",
-    layerName: "Metadata labels",
-    layerType: "metadata"
-  },
-  {
-    cmd: "ENV",
-    arg: "NODE_ENV=production PORT=3000",
-    desc: "Sets environment variables that persist both during build instructions and at runtime in the booted container process.",
-    layerName: "Env: NODE_ENV, PORT",
-    layerType: "config"
+    arg: "node:22",
+    desc: "Loads the Parent Node.js runtime base layer containing alpine Linux environment and core executable libraries.",
+    layerSize: "115.4 MB",
+    layerFiles: ["/bin/node", "/usr/local/bin/npm", "/lib/ld-musl-x86_64.so.1"],
+    isCached: true,
+    visualEffect: "base_layer"
   },
   {
     cmd: "WORKDIR",
-    arg: "/usr/src/app",
-    desc: "Sets the active working directory inside the container's filesystem for subsequent commands (like RUN or COPY). If the directory doesn't exist, Docker creates it automatically.",
-    layerName: "Working Directory: /usr/src/app",
-    layerType: "config"
+    arg: "/app",
+    desc: "Creates working folder path /app inside container namespaces and sets active context pointer directory.",
+    layerSize: "0 B",
+    layerFiles: ["/app/"],
+    isCached: true,
+    visualEffect: "workdir_dir"
   },
   {
     cmd: "COPY",
-    arg: "package*.json ./",
-    desc: "Copies files or directories from the host machine into the container's filesystem. Copying only package list manifests first allows Docker to cache the subsequent dependency installation layers. If package.json hasn't changed, Docker reuses the cached layer, saving massive build time.",
-    layerName: "Source: package manifests",
-    layerType: "copy"
+    arg: "package*.json .",
+    desc: "Copies package manifest lists separate from code directories to preserve package installer caches on modifications.",
+    layerSize: "820 B",
+    layerFiles: ["/app/package.json", "/app/package-lock.json"],
+    isCached: true,
+    visualEffect: "manifest_copy"
   },
   {
     cmd: "RUN",
-    arg: "npm ci --only=production",
-    desc: "Executes command scripts inside the container environment during compilation. Here, npm ci performs a clean install of production dependencies only.",
-    layerName: "Deps: npm packages install",
-    layerType: "install"
+    arg: "npm install",
+    desc: "Executes npm package installer compiling external dependencies down to local image storage directory.",
+    layerSize: "142.8 MB",
+    layerFiles: ["/app/node_modules/", "/app/node_modules/.bin/"],
+    isCached: false,
+    visualEffect: "npm_compile"
   },
   {
     cmd: "COPY",
     arg: ". .",
-    desc: "Copies the remaining application source code files from the host workspace into the active working directory inside the container.",
-    layerName: "Source: App codes",
-    layerType: "copy"
-  },
-  {
-    cmd: "USER",
-    arg: "node",
-    desc: "Changes the active user context for subsequent instructions and runtime processes. By default, containers run as root (uid 0), which poses security risks. Switching to a non-privileged user like node is a critical security best practice.",
-    layerName: "User privilege: node",
-    layerType: "metadata"
+    desc: "Copies remaining local project code, modules, assets, and views inside the container active path directory.",
+    layerSize: "24.2 KB",
+    layerFiles: ["/app/server.js", "/app/utils/db.js", "/app/public/index.html"],
+    isCached: false,
+    visualEffect: "code_copy"
   },
   {
     cmd: "EXPOSE",
     arg: "3000",
-    desc: "Documents the network ports that the container process intends to listen on at runtime. Note: EXPOSE serves as documentation; it does not actually open ports on the host (that requires port forwarding).",
-    layerName: "Metadata: Port 3000",
-    layerType: "metadata"
-  },
-  {
-    cmd: "HEALTHCHECK",
-    arg: "--interval=30s CMD curl -f http://localhost:3000/health || exit 1",
-    desc: "Specifies a command line tool probe that runs at regular intervals inside the container to verify its health status. If the probe fails, the container status transitions to unhealthy.",
-    layerName: "Health check probe",
-    layerType: "metadata"
-  },
-  {
-    cmd: "ENTRYPOINT",
-    arg: '["node"]',
-    desc: "Configures the container to run as an executable. ENTRYPOINT sets the primary binary process that is always executed. Unlike CMD, arguments passed to the container run command are appended to the ENTRYPOINT command.",
-    layerName: "Executable process: node",
-    layerType: "metadata"
+    desc: "Documents the network container port that app process intends to bind on startup. Purely metadata.",
+    layerSize: "0 B",
+    layerFiles: ["Metadata: Ports mapping [3000]"],
+    isCached: false,
+    visualEffect: "expose_port"
   },
   {
     cmd: "CMD",
-    arg: '["server.js"]',
-    desc: "Defines the default arguments for the ENTRYPOINT. When the container runs, 'node server.js' is executed. If a user starts the container with overrides (e.g. docker run myimage test.js), it overrides the CMD arguments (running node test.js instead).",
-    layerName: "Default arguments: server.js",
-    layerType: "metadata"
+    arg: '["npm", "start"]',
+    desc: "Registers default process boot entrypoint parameters configuration. Consumes zero space layers.",
+    layerSize: "0 B",
+    layerFiles: ["Metadata: ENTRYPOINT command"],
+    isCached: false,
+    visualEffect: "cmd_entry"
   }
 ];
 
 export default function DockerfileBuilder() {
-  const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
+  const [activeStepIdx, setActiveStepIdx] = useState<number>(-1);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [hoveredLayerIdx, setHoveredLayerIdx] = useState<number | null>(null);
+  const [buildComplete, setBuildComplete] = useState<boolean>(false);
+  const [terminalOutput, setTerminalOutput] = useState<string>("Ready to compile Dockerfile. Click 'Build' to start.");
 
-  const activeStep = DOCKERFILE_STEPS[activeStepIndex];
+  const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
+
+  const containerBlockRef = useRef<HTMLDivElement>(null);
+  const filesRef = useRef<HTMLDivElement>(null);
+  const terminalLogRef = useRef<HTMLDivElement>(null);
+
+  useAnimationControls(timeline);
+
+  const handleReset = () => {
+    setIsPlaying(false);
+    setActiveStepIdx(-1);
+    setBuildComplete(false);
+    setHoveredLayerIdx(null);
+    setTerminalOutput("Ready to compile Dockerfile. Click 'Build' to start.");
+
+    if (timeline) {
+      timeline.pause().progress(0);
+    }
+
+    DOCKERFILE_INSTRUCTIONS.forEach((_, idx) => {
+      gsap.set(`#builder-layer-${idx}`, { opacity: 0, y: -40, scale: 0.9 });
+    });
+    gsap.set("#base-image-node", { opacity: 0, scale: 0.8 });
+    gsap.set("#workdir-folder-node", { opacity: 0, y: 15 });
+    gsap.set("#files-cluster-node", { opacity: 0, scale: 0.7 });
+    gsap.set("#npm-progress-node", { opacity: 0, width: "0%" });
+    gsap.set("#ports-badge-node", { opacity: 0, scale: 0.5 });
+    gsap.set("#cmd-badge-node", { opacity: 0, y: 10 });
+  };
+
+  const handleBuild = () => {
+    setIsPlaying(true);
+    setBuildComplete(false);
+    setActiveStepIdx(0);
+    setHoveredLayerIdx(null);
+
+    if (timeline) {
+      timeline.kill();
+    }
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        setIsPlaying(false);
+        setBuildComplete(true);
+        setActiveStepIdx(DOCKERFILE_INSTRUCTIONS.length - 1);
+        setTerminalOutput("Successfully built image locally! Mapped tag: app-server:latest");
+        setHoveredLayerIdx(DOCKERFILE_INSTRUCTIONS.length - 1);
+      }
+    });
+
+    setTimeline(tl);
+
+    // Reset initial states
+    DOCKERFILE_INSTRUCTIONS.forEach((_, idx) => {
+      gsap.set(`#builder-layer-${idx}`, { opacity: 0, y: -40, scale: 0.9 });
+    });
+    gsap.set("#base-image-node", { opacity: 0, scale: 0.8 });
+    gsap.set("#workdir-folder-node", { opacity: 0, y: 15 });
+    gsap.set("#files-cluster-node", { opacity: 0, scale: 0.7 });
+    gsap.set("#npm-progress-node", { opacity: 0, width: "0%" });
+    gsap.set("#ports-badge-node", { opacity: 0, scale: 0.5 });
+    gsap.set("#cmd-badge-node", { opacity: 0, y: 10 });
+
+    // Step 0: FROM node:22
+    tl.to({}, { duration: 0.2 })
+      .call(() => {
+        setActiveStepIdx(0);
+        setTerminalOutput("Step 1/7 : FROM node:22\nFetching Alpine Node base image...");
+      })
+      .to("#base-image-node", { opacity: 1, scale: 1, duration: 0.5 })
+      .to("#builder-layer-0", { opacity: 1, y: 0, scale: 1, duration: 0.4 }, "-=0.2")
+
+      // Step 1: WORKDIR /app
+      .to({}, { duration: 0.4 })
+      .call(() => {
+        setActiveStepIdx(1);
+        setTerminalOutput("Step 2/7 : WORKDIR /app\nCreating directory paths and setting workspace context...");
+      })
+      .to("#workdir-folder-node", { opacity: 1, y: 0, duration: 0.4 })
+      .to("#builder-layer-1", { opacity: 1, y: 0, scale: 1, duration: 0.4 }, "-=0.2")
+
+      // Step 2: COPY package*.json .
+      .to({}, { duration: 0.4 })
+      .call(() => {
+        setActiveStepIdx(2);
+        setTerminalOutput("Step 3/7 : COPY package*.json .\nTransferring dependency catalogs to context directory...");
+      })
+      .to("#files-cluster-node", { opacity: 0.7, scale: 0.9, duration: 0.3 })
+      .to("#builder-layer-2", { opacity: 1, y: 0, scale: 1, duration: 0.4 }, "-=0.2")
+
+      // Step 3: RUN npm install
+      .to({}, { duration: 0.4 })
+      .call(() => {
+        setActiveStepIdx(3);
+        setTerminalOutput("Step 4/7 : RUN npm install\nInstalling packages. Compiling dependencies tree...");
+      })
+      .to("#npm-progress-node", { opacity: 1, width: "100%", duration: 1.2 })
+      .to("#builder-layer-3", { opacity: 1, y: 0, scale: 1, duration: 0.4 }, "-=0.2")
+
+      // Step 4: COPY . .
+      .to({}, { duration: 0.4 })
+      .call(() => {
+        setActiveStepIdx(4);
+        setTerminalOutput("Step 5/7 : COPY . .\nImporting application code and scripts...");
+      })
+      .to("#files-cluster-node", { opacity: 1, scale: 1.05, duration: 0.4 })
+      .to("#builder-layer-4", { opacity: 1, y: 0, scale: 1, duration: 0.4 }, "-=0.2")
+
+      // Step 5: EXPOSE 3000
+      .to({}, { duration: 0.4 })
+      .call(() => {
+        setActiveStepIdx(5);
+        setTerminalOutput("Step 6/7 : EXPOSE 3000\nConfiguring virtual port mappings...");
+      })
+      .to("#ports-badge-node", { opacity: 1, scale: 1, duration: 0.4 })
+      .to("#builder-layer-5", { opacity: 1, y: 0, scale: 1, duration: 0.4 }, "-=0.2")
+
+      // Step 6: CMD ["npm", "start"]
+      .to({}, { duration: 0.4 })
+      .call(() => {
+        setActiveStepIdx(6);
+        setTerminalOutput("Step 7/7 : CMD [\"npm\", \"start\"]\nAttaching execution startup CMD parameters...");
+      })
+      .to("#cmd-badge-node", { opacity: 1, y: 0, duration: 0.4 })
+      .to("#builder-layer-6", { opacity: 1, y: 0, scale: 1, duration: 0.4 }, "-=0.2")
+
+      .to({}, { duration: 0.5 });
+  };
+
+  const handleNext = () => {
+    if (activeStepIdx < DOCKERFILE_INSTRUCTIONS.length - 1) {
+      const target = activeStepIdx + 1;
+      setActiveStepIdx(target);
+      setHoveredLayerIdx(target);
+      gsap.to(`#builder-layer-${target}`, { opacity: 1, y: 0, scale: 1, duration: 0.3 });
+      
+      // Update visual nodes corresponding to step
+      if (target === 0) gsap.to("#base-image-node", { opacity: 1, scale: 1 });
+      if (target === 1) gsap.to("#workdir-folder-node", { opacity: 1, y: 0 });
+      if (target === 2) gsap.to("#files-cluster-node", { opacity: 0.7, scale: 0.9 });
+      if (target === 3) gsap.to("#npm-progress-node", { opacity: 1, width: "100%" });
+      if (target === 4) gsap.to("#files-cluster-node", { opacity: 1, scale: 1.05 });
+      if (target === 5) gsap.to("#ports-badge-node", { opacity: 1, scale: 1 });
+      if (target === 6) {
+        gsap.to("#cmd-badge-node", { opacity: 1, y: 0 });
+        setBuildComplete(true);
+      }
+      
+      setTerminalOutput(`Step ${target + 1}/7 : ${DOCKERFILE_INSTRUCTIONS[target].cmd} ${DOCKERFILE_INSTRUCTIONS[target].arg}`);
+    }
+  };
+
+  const handlePrev = () => {
+    if (activeStepIdx > -1) {
+      const target = activeStepIdx;
+      gsap.to(`#builder-layer-${target}`, { opacity: 0, y: -40, scale: 0.9, duration: 0.3 });
+      
+      // Revert visual node states
+      if (target === 0) gsap.to("#base-image-node", { opacity: 0, scale: 0.8 });
+      if (target === 1) gsap.to("#workdir-folder-node", { opacity: 0, y: 15 });
+      if (target === 2) gsap.to("#files-cluster-node", { opacity: 0, scale: 0.7 });
+      if (target === 3) gsap.to("#npm-progress-node", { opacity: 0, width: "0%" });
+      if (target === 4) gsap.to("#files-cluster-node", { opacity: 0.7, scale: 0.9 });
+      if (target === 5) gsap.to("#ports-badge-node", { opacity: 0, scale: 0.5 });
+      if (target === 6) {
+        gsap.to("#cmd-badge-node", { opacity: 0, y: 10 });
+        setBuildComplete(false);
+      }
+
+      const nextActive = activeStepIdx - 1;
+      setActiveStepIdx(nextActive);
+      setHoveredLayerIdx(nextActive >= 0 ? nextActive : null);
+      setTerminalOutput(nextActive >= 0 
+        ? `Step ${nextActive + 1}/7 : ${DOCKERFILE_INSTRUCTIONS[nextActive].cmd} ${DOCKERFILE_INSTRUCTIONS[nextActive].arg}`
+        : "Ready to compile Dockerfile. Click 'Build' to start."
+      );
+    }
+  };
+
+  useEffect(() => {
+    handleReset();
+    return () => {
+      if (timeline) timeline.kill();
+    };
+  }, []);
+
+  const activeInspectIdx = hoveredLayerIdx !== null ? hoveredLayerIdx : (activeStepIdx >= 0 ? activeStepIdx : 0);
+  const inspectLayer = DOCKERFILE_INSTRUCTIONS[activeInspectIdx];
 
   return (
     <VisualCanvas
-      objective="Understand the anatomy of a Dockerfile by tracing how standard instructions compose an immutable image layer stack."
-      timeline={null}
+      objective="Understand how Docker turns application source code into a layered, executable image blueprint."
+      timeline={timeline}
+      onStepBack={handleReset}
       explanation={
         <div className="flex flex-col gap-2.5 font-sans">
           <div className="flex items-center gap-1.5 font-bold text-zinc-200">
             <HelpCircle className="w-4 h-4 text-zinc-450" />
-            What is a Dockerfile?
+            Dockerfile Compilation Sequence
           </div>
           <p>
-            A **Dockerfile** is a text script containing consecutive instruction directives that Docker reads to compile and assemble an immutable container image process environment.
+            A **Dockerfile** is a list of sequential instructions. When you build the image, Docker processes each line one by one, creating a new storage layer segment for actions that modify files, and appending metadata parameters for configuration lines.
           </p>
         </div>
       }
     >
-      <div className="w-full flex-1 flex flex-col md:flex-row items-stretch gap-6 min-h-0 select-none font-sans">
+      <div className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
         
-        {/* Code Editor and Build stack column (Left) */}
-        <div className="flex-1 flex flex-col md:flex-row gap-4 items-stretch min-h-[300px]">
+        {/* Three-Panel Layout: 1. Dockerfile | 2. Center Animation Canvas | 3. Growing Image Layers */}
+        <div className="flex-1 flex flex-col xl:flex-row gap-4 items-stretch justify-center p-4 border border-zinc-800/40 bg-[#121214] rounded-[18px] min-h-[350px] relative overflow-hidden">
           
-          {/* File Editor Pane */}
-          <div className="flex-1 flex flex-col rounded-[18px] border border-zinc-800/40 bg-[#121214] overflow-hidden relative shadow-sm">
-            <div className="bg-[#1a1a1e] px-4 py-1.5 border-b border-zinc-800/30 flex items-center shrink-0 justify-between">
-              <span className="text-[8px] font-mono text-zinc-500 font-bold">Dockerfile</span>
-            </div>
-
-            <div className="flex-1 p-4 font-mono text-[9px] overflow-y-auto leading-relaxed bg-[#0d0d0e] custom-scrollbar">
-              {DOCKERFILE_STEPS.map((step, idx) => {
-                const isSelected = idx === activeStepIndex;
-                const isPast = idx < activeStepIndex;
+          {/* Panel 1: Dockerfile (Left) */}
+          <div className="flex-1 xl:flex-none xl:w-[220px] flex flex-col p-4 bg-[#0d0d0e] rounded-[12px] border border-zinc-850 shadow-inner">
+            <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-zinc-500 mb-3 flex items-center gap-1">
+              <FileText className="w-3.5 h-3.5 text-zinc-450" />
+              Dockerfile Editor
+            </span>
+            <div className="flex flex-col gap-1.5 font-mono text-[9px] text-zinc-450 select-text leading-relaxed">
+              {DOCKERFILE_INSTRUCTIONS.map((step, idx) => {
+                const isActive = activeStepIdx === idx;
                 return (
                   <div
                     key={idx}
-                    onClick={() => setActiveStepIndex(idx)}
                     className={cn(
-                      "px-2 py-0.5 rounded-[4px] cursor-pointer transition-colors flex gap-4 my-[1px]",
-                      isSelected
-                        ? "bg-zinc-800 text-white font-bold"
-                        : isPast
-                        ? "text-zinc-350 hover:bg-zinc-850"
-                        : "text-zinc-600 hover:bg-zinc-850"
+                      "p-1.5 rounded-[6px] border border-transparent transition-all duration-300",
+                      isActive && "bg-white/5 border-white/10 text-white font-bold pl-2.5"
                     )}
                   >
-                    <span className="w-20 uppercase tracking-wider text-zinc-500 font-bold shrink-0">
+                    <span className={cn(isActive ? "text-[#FAFAFA]" : "text-zinc-550", "font-bold mr-1")}>
                       {step.cmd}
                     </span>
-                    <span className="text-zinc-200 truncate">{step.arg}</span>
+                    {step.arg}
                   </div>
                 );
               })}
             </div>
           </div>
 
-          {/* Compiled Layer Stack graphic */}
-          <div className="w-full md:w-80 flex flex-col rounded-[18px] border border-zinc-800/40 bg-[#121214] overflow-hidden relative p-4 shadow-sm select-none shrink-0 justify-between">
-            <span className="text-[8px] font-mono text-zinc-550 uppercase tracking-widest block mb-4 text-center">
-              Compiled Image Layers
-            </span>
+          {/* Panel 2: Animation Center Canvas (Middle) */}
+          <div className="flex-1 flex flex-col p-4 bg-[#0d0d0e]/60 rounded-[12px] border border-zinc-850 relative justify-center items-center min-h-[220px]">
             
-            <div className="flex-1 flex gap-3 min-h-0">
-              {/* Column 1: Config (ARG -> WORKDIR) */}
-              <div className="flex-1 flex flex-col-reverse justify-end gap-1.5">
-                <span className="text-[7px] text-zinc-550 font-bold uppercase tracking-wider text-center block mb-1">
-                  1. Config
-                </span>
-                {DOCKERFILE_STEPS.slice(0, 5).map((step, idx) => {
-                  const actualIdx = idx; // 0, 1, 2, 3, 4
-                  const isActive = actualIdx === activeStepIndex;
-                  const isCompiled = actualIdx <= activeStepIndex;
-                  
-                  return (
-                    <div
-                      key={actualIdx}
-                      onClick={() => setActiveStepIndex(actualIdx)}
-                      className={cn(
-                        "p-1.5 rounded-[6px] border text-center transition-all duration-300 cursor-pointer flex flex-col justify-center min-h-[36px]",
-                        isActive
-                          ? "bg-white text-black border-white scale-[1.02] shadow-[0_0_8px_rgba(255,255,255,0.15)]"
-                          : isCompiled
-                          ? "bg-[#0d0d0e] text-zinc-300 border-zinc-800"
-                          : "bg-[#0d0d0e]/20 text-zinc-650 border-zinc-900 border-dashed opacity-40"
-                      )}
-                    >
-                      <span className="text-[7.5px] font-bold tracking-wider font-sans uppercase">
-                        {step.cmd} layer
-                      </span>
-                      {isCompiled && (
-                        <span className="text-[6.5px] font-mono truncate max-w-[110px] opacity-80 mt-0.5 block leading-normal">
-                          {step.layerName}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Visual simulation stage nodes */}
+            <div className="w-full max-w-xs flex flex-col gap-4 items-center justify-center relative min-h-[160px]">
+              
+              {/* Node 1: Base Image Container */}
+              <div 
+                id="base-image-node" 
+                className="w-full py-2.5 px-3 rounded-[9px] border border-zinc-800 bg-[#0d0d0e] text-[9px] font-mono text-zinc-350 flex items-center justify-between shadow-sm opacity-0 scale-90 transition-all duration-300"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-zinc-500" />
+                  <span>node:22 Base Image</span>
+                </div>
+                <span className="text-[7.5px] uppercase tracking-wider text-zinc-550 font-bold">Base Layer</span>
               </div>
 
-              {/* Column 2: Runtime (COPY -> CMD) */}
-              <div className="flex-1 flex flex-col-reverse justify-end gap-1.5">
-                <span className="text-[7px] text-zinc-550 font-bold uppercase tracking-wider text-center block mb-1">
-                  2. Runtime
-                </span>
-                {DOCKERFILE_STEPS.slice(5).map((step, idx) => {
-                  const actualIdx = 5 + idx; // 5 to 12
-                  const isActive = actualIdx === activeStepIndex;
-                  const isCompiled = actualIdx <= activeStepIndex;
-                  
-                  return (
-                    <div
-                      key={actualIdx}
-                      onClick={() => setActiveStepIndex(actualIdx)}
-                      className={cn(
-                        "p-1.5 rounded-[6px] border text-center transition-all duration-300 cursor-pointer flex flex-col justify-center min-h-[36px]",
-                        isActive
-                          ? "bg-white text-black border-white scale-[1.02] shadow-[0_0_8px_rgba(255,255,255,0.15)]"
-                          : isCompiled
-                          ? "bg-[#0d0d0e] text-zinc-300 border-zinc-800"
-                          : "bg-[#0d0d0e]/20 text-zinc-650 border-zinc-900 border-dashed opacity-40"
-                      )}
-                    >
-                      <span className="text-[7.5px] font-bold tracking-wider font-sans uppercase">
-                        {step.cmd} layer
-                      </span>
-                      {isCompiled && (
-                        <span className="text-[6.5px] font-mono truncate max-w-[110px] opacity-80 mt-0.5 block leading-normal">
-                          {step.layerName}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+              {/* Node 2: Workspace Directory */}
+              <div 
+                id="workdir-folder-node"
+                className="w-full p-2.5 rounded-[9px] border border-dashed border-zinc-800 bg-[#121214]/60 text-[9px] font-mono text-zinc-400 flex flex-col gap-1.5 opacity-0 translate-y-[15px] transition-all duration-300"
+              >
+                <span className="text-[7.5px] uppercase font-bold text-zinc-550 tracking-wider">Workspace: /app</span>
+                
+                {/* Node 3: Copy Files inside directories */}
+                <div 
+                  id="files-cluster-node" 
+                  className="w-full py-1.5 px-2 rounded-[6px] border border-zinc-850 bg-[#0d0d0e]/80 text-[8px] flex items-center justify-between opacity-0 scale-95 transition-all duration-300"
+                >
+                  <span className="text-zinc-300">source files + manifests</span>
+                  <span className="text-[7px] text-zinc-650 font-bold uppercase">COPY</span>
+                </div>
+
+                {/* Node 4: RUN package downloads */}
+                <div className="w-full flex flex-col gap-1">
+                  <div className="h-1.5 w-full rounded-full bg-zinc-900 overflow-hidden relative">
+                    <div 
+                      id="npm-progress-node" 
+                      className="absolute left-0 top-0 bottom-0 bg-white opacity-0"
+                      style={{ width: "0%" }}
+                    />
+                  </div>
+                  <span className="text-[7px] text-zinc-550 text-right uppercase tracking-wider font-sans block">npm installation dependencies</span>
+                </div>
               </div>
+
+              {/* Toggles & Badges: Ports & CMD config */}
+              <div className="w-full flex gap-2">
+                {/* Ports Badge */}
+                <div 
+                  id="ports-badge-node"
+                  className="flex-1 py-1.5 px-2.5 rounded-[6px] border border-zinc-800 bg-[#0d0d0e]/60 text-[8px] font-mono text-zinc-350 flex items-center justify-between opacity-0 scale-90 transition-all duration-300"
+                >
+                  <span>Exposed Port</span>
+                  <span className="font-bold text-white">3000</span>
+                </div>
+                {/* CMD Badge */}
+                <div 
+                  id="cmd-badge-node"
+                  className="flex-1 py-1.5 px-2.5 rounded-[6px] border border-zinc-800 bg-[#0d0d0e]/60 text-[8px] font-mono text-zinc-350 flex items-center justify-between opacity-0 translate-y-[10px] transition-all duration-300"
+                >
+                  <span>Startup CMD</span>
+                  <span className="font-bold text-white">npm start</span>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Panel 3: Growing Layer Stack (Right) */}
+          <div className="flex-1 xl:flex-none xl:w-[220px] flex flex-col p-4 bg-[#0d0d0e] rounded-[12px] border border-zinc-850 shadow-inner">
+            <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-zinc-550 mb-3 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-zinc-400" />
+              Growing Image layers
+            </span>
+            <div className="flex flex-col-reverse gap-1 justify-end flex-1">
+              {DOCKERFILE_INSTRUCTIONS.map((layer, idx) => {
+                const isActive = activeStepIdx >= idx;
+                const isInspected = activeInspectIdx === idx;
+                return (
+                  <div
+                    key={idx}
+                    id={`builder-layer-${idx}`}
+                    onMouseEnter={() => buildComplete && setHoveredLayerIdx(idx)}
+                    onMouseLeave={() => buildComplete && setHoveredLayerIdx(null)}
+                    className={cn(
+                      "w-full py-1.5 px-2.5 rounded-[8px] border text-[8px] font-mono flex items-center justify-between transition-all duration-300 cursor-default opacity-0 -translate-y-10 scale-90",
+                      isInspected 
+                        ? "bg-white border-transparent text-black font-bold shadow-[0_0_8px_rgba(255,255,255,0.2)]" 
+                        : "bg-[#121214] border-zinc-850 text-zinc-400"
+                    )}
+                  >
+                    <span>Layer {idx + 1} ({layer.cmd})</span>
+                    <span className="text-[7px] opacity-70">{layer.layerSize}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
         </div>
 
-        {/* Selected Directive Inspector panel (Right) */}
-        <div className="w-full md:w-80 p-5 rounded-[18px] border border-zinc-800/40 bg-[#121214] flex flex-col gap-4 relative shrink-0 shadow-sm animate-fadeIn">
+        {/* Console & Inspector Details Panel (Right) */}
+        <div className="w-full md:w-80 p-5 rounded-[18px] border border-zinc-800/40 bg-[#121214] flex flex-col gap-4 relative shrink-0 shadow-sm">
+          
+          {/* Section 1: Console Controls */}
           <div>
             <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-450 font-bold block mb-1">
-              Directive Anatomy
+              Builder Controls
             </span>
-            <h4 className="text-base font-extrabold text-white flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-zinc-800 border border-zinc-700 font-mono text-xs">
-                {activeStep.cmd}
-              </span>
-              <span className="text-[10px] font-mono font-normal text-zinc-450 truncate">
-                {activeStep.arg}
-              </span>
-            </h4>
-            <p className="text-xs text-zinc-400 leading-relaxed font-normal mt-4 select-text">
-              {activeStep.desc}
-            </p>
+            <h4 className="text-sm font-extrabold text-white">Instruction compiler</h4>
+            
+            {/* Playback Button Group */}
+            <div className="grid grid-cols-2 gap-2 mt-3 select-none">
+              <button
+                onClick={handleBuild}
+                disabled={isPlaying}
+                className="py-2 px-2.5 rounded-[8px] text-[10px] font-bold bg-white text-black hover:bg-zinc-200 transition-all border-0 disabled:opacity-40 cursor-pointer flex items-center justify-center gap-1"
+              >
+                <Play className="w-3 h-3 fill-black text-black" />
+                Build Stack
+              </button>
+              <button
+                onClick={handleReset}
+                className="py-2 px-2.5 rounded-[8px] text-[10px] font-bold bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 transition-all cursor-pointer flex items-center justify-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset
+              </button>
+            </div>
+
+            {/* Stepper controls */}
+            <div className="grid grid-cols-2 gap-2 mt-2 select-none">
+              <button
+                onClick={handlePrev}
+                disabled={isPlaying || activeStepIdx <= -1}
+                className="py-1.5 rounded-[6px] text-[9px] font-semibold bg-[#121214] border border-zinc-850 text-zinc-400 hover:text-zinc-200 transition-all disabled:opacity-30 cursor-pointer"
+              >
+                Previous Step
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={isPlaying || activeStepIdx >= DOCKERFILE_INSTRUCTIONS.length - 1}
+                className="py-1.5 rounded-[6px] text-[9px] font-semibold bg-[#121214] border border-zinc-850 text-zinc-400 hover:text-zinc-200 transition-all disabled:opacity-30 cursor-pointer"
+              >
+                Next Step
+              </button>
+            </div>
           </div>
 
-          <div className="p-3.5 rounded-[12px] bg-[#0d0d0e] border border-zinc-800/20 text-[10px] text-zinc-450 leading-relaxed select-text mt-auto">
-            <span className="font-bold block mb-0.5 text-zinc-200 font-sans">Anatomy Note:</span>
-            Every directive represents an instruction layer. Select each instruction in the code script to observe its role and build characteristics.
+          {/* Section 2: Terminal Logs output */}
+          <div 
+            ref={terminalLogRef}
+            className="p-3 bg-[#0d0d0e] rounded-[10px] border border-zinc-850 font-mono text-[9px] text-zinc-400 min-h-[75px] select-text flex-1"
+          >
+            <span className="text-[7.5px] uppercase font-bold text-zinc-550 block mb-1">Terminal compilation output:</span>
+            <code className="text-zinc-300 leading-normal block whitespace-pre-wrap">{terminalOutput}</code>
           </div>
+
+          {/* Section 3: Layer Details Inspector */}
+          <div className="p-4 bg-[#0d0d0e] rounded-[12px] border border-zinc-800/25 flex flex-col gap-2 font-sans select-text">
+            <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-zinc-500">
+              Layer {activeInspectIdx + 1} Inspection:
+            </span>
+            <h4 className="text-[10px] font-extrabold text-white">
+              Instruction: <code className="text-zinc-200">{inspectLayer.cmd} {inspectLayer.arg}</code>
+            </h4>
+            <p className="text-[9.5px] text-zinc-450 leading-relaxed font-normal mt-0.5">
+              {inspectLayer.desc}
+            </p>
+            <div className="flex flex-col gap-1 border-t border-zinc-850/50 pt-2 mt-1">
+              <div className="flex justify-between items-center text-[8.5px] font-bold">
+                <span className="text-zinc-500">Layer size impact:</span>
+                <span className="text-zinc-300 font-mono">{inspectLayer.layerSize}</span>
+              </div>
+              <div className="flex justify-between items-center text-[8.5px] font-bold">
+                <span className="text-zinc-500">Cache inheritance:</span>
+                <span className="text-zinc-300 font-mono">{inspectLayer.isCached ? "Layer matches local cache" : "Rebuilt cache misses"}</span>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </div>
