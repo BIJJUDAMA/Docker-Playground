@@ -28,7 +28,7 @@ export const modules: Module[] = [
     title: "Docker Fundamentals",
     description: "Explore the internal architecture of Docker, its core daemon, objects, and CLI command flow.",
     icon: "Cpu",
-    visualizationCount: 3,
+    visualizationCount: 4,
     learningObjectives: [
       "Describe the Client-Server architecture of Docker Engine",
       "Distinguish between key Docker objects: Images, Containers, Networks, and Volumes",
@@ -41,7 +41,7 @@ export const modules: Module[] = [
     title: "Images & Containers",
     description: "Learn how images are composed of read-only layers and how containers add a writable layer.",
     icon: "Layers",
-    visualizationCount: 5,
+    visualizationCount: 6,
     learningObjectives: [
       "Understand the read-only, stacked structure of Docker Image layers",
       "Explain the difference between a Container and an Image",
@@ -107,7 +107,7 @@ export const modules: Module[] = [
     title: "Wrap Up & Advanced",
     description: "Look at the broader Docker ecosystem, CI/CD pipeline integration, and multi-stage builds.",
     icon: "Award",
-    visualizationCount: 3,
+    visualizationCount: 4,
     learningObjectives: [
       "Appreciate the benefits of multi-stage builds for optimizing image sizes",
       "Trace a container's journey through a CI/CD automated pipeline",
