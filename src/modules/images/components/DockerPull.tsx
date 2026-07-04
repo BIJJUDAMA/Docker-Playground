@@ -13,18 +13,18 @@ interface PullLayer {
   id: number;
   name: string;
   size: string;
-  cached: boolean;
+  alreadyExists: boolean;
 }
 
 const PULL_LAYERS: PullLayer[] = [
-  { id: 4, name: "app-code:latest", size: "2.4 MB", cached: false },
-  { id: 3, name: "requirements:latest", size: "84.2 MB", cached: false },
-  { id: 2, name: "python:3.10-alpine", size: "52.8 MB", cached: true },
-  { id: 1, name: "alpine:3.18", size: "5.8 MB", cached: true }
+  { id: 4, name: "app-code:latest", size: "2.4 MB", alreadyExists: false },
+  { id: 3, name: "requirements:latest", size: "84.2 MB", alreadyExists: false },
+  { id: 2, name: "python:3.10-alpine", size: "52.8 MB", alreadyExists: true },
+  { id: 1, name: "alpine:3.18", size: "5.8 MB", alreadyExists: true }
 ];
 
 export default function DockerPull() {
-  const [pullStatuses, setPullStatuses] = useState<Record<number, "idle" | "checking" | "downloading" | "completed" | "cached">>({
+  const [pullStatuses, setPullStatuses] = useState<Record<number, "idle" | "checking" | "downloading" | "completed" | "exists">>({
     1: "idle", 2: "idle", 3: "idle", 4: "idle"
   });
   const [downloadProgress, setDownloadProgress] = useState<Record<number, number>>({
@@ -95,7 +95,7 @@ export default function DockerPull() {
       .to(packetRef.current, { opacity: 0, scale: 0, duration: 0.15 })
       .to({}, {
         duration: 0.3,
-        onStart: () => setPullStatuses(prev => ({ ...prev, 1: "cached" })),
+        onStart: () => setPullStatuses(prev => ({ ...prev, 1: "exists" })),
       })
       .to(localLayerRefs.current[1], {
         scale: 1,
@@ -115,7 +115,7 @@ export default function DockerPull() {
       .to(packetRef.current, { opacity: 0, scale: 0, duration: 0.15 })
       .to({}, {
         duration: 0.3,
-        onStart: () => setPullStatuses(prev => ({ ...prev, 2: "cached" })),
+        onStart: () => setPullStatuses(prev => ({ ...prev, 2: "exists" })),
       })
       .to(localLayerRefs.current[2], {
         scale: 1,
@@ -248,7 +248,7 @@ export default function DockerPull() {
                       ref={(el) => { localLayerRefs.current[layer.id] = el; }}
                       className={cn(
                         "p-2 rounded-[9px] border font-mono text-[9px] flex items-center justify-between transition-all duration-300 relative overflow-hidden",
-                        status === "cached" && "bg-zinc-800/10 border-zinc-700 text-zinc-300",
+                        status === "exists" && "bg-zinc-800/10 border-zinc-700 text-zinc-300",
                         status === "completed" && "bg-white/5 border-white/10 text-white",
                         status === "downloading" && "bg-[#0d0d0e] border-zinc-750 text-zinc-300",
                         status === "idle" && "opacity-0 scale-90 border-transparent text-zinc-650"
@@ -263,7 +263,7 @@ export default function DockerPull() {
 
                       <span>{layer.name}</span>
                       <span className="text-[7px] font-sans font-bold uppercase shrink-0">
-                        {status === "cached" && "Already Exists"}
+                        {status === "exists" && "Already Exists"}
                         {status === "completed" && "Downloaded"}
                         {status === "downloading" && `Pulling ${progress}%`}
                       </span>
@@ -293,27 +293,47 @@ export default function DockerPull() {
               Using default tag: latest<br />
               latest: Pulling from library/app<br /><br />
               {pullStatuses[1] !== "idle" && (
-                <div>
+                <div className="mb-1">
                   {pullStatuses[1] === "checking" && <span className="animate-pulse text-zinc-400">Checking alpine:3.18...</span>}
-                  {pullStatuses[1] === "cached" && <span className="text-zinc-300">5.8MB: Already exists</span>}
+                  {pullStatuses[1] === "exists" && (
+                    <span className="text-zinc-300">
+                      5.8MB: Already exists<br />
+                      <span className="text-zinc-500 text-[8px] block pl-3">↳ Shared base layer reused from local image cache</span>
+                    </span>
+                  )}
                 </div>
               )}
               {pullStatuses[2] !== "idle" && (
-                <div>
+                <div className="mb-1">
                   {pullStatuses[2] === "checking" && <span className="animate-pulse text-zinc-400">Checking python:3.10...</span>}
-                  {pullStatuses[2] === "cached" && <span className="text-zinc-300">52.8MB: Already exists</span>}
+                  {pullStatuses[2] === "exists" && (
+                    <span className="text-zinc-300">
+                      52.8MB: Already exists<br />
+                      <span className="text-zinc-500 text-[8px] block pl-3">↳ Language runtime layer shared on host - download skipped</span>
+                    </span>
+                  )}
                 </div>
               )}
               {pullStatuses[3] !== "idle" && (
-                <div>
+                <div className="mb-1">
                   {pullStatuses[3] === "downloading" && <span className="text-zinc-200 animate-pulse">Pulling requirements layer ({downloadProgress[3]}%)</span>}
-                  {pullStatuses[3] === "completed" && <span className="text-zinc-200">84.2MB: Pull complete</span>}
+                  {pullStatuses[3] === "completed" && (
+                    <span className="text-zinc-200">
+                      84.2MB: Pull complete<br />
+                      <span className="text-zinc-500 text-[8px] block pl-3">↳ New dependencies fetched from registry</span>
+                    </span>
+                  )}
                 </div>
               )}
               {pullStatuses[4] !== "idle" && (
-                <div>
+                <div className="mb-1">
                   {pullStatuses[4] === "downloading" && <span className="text-zinc-200 animate-pulse">Pulling app layer ({downloadProgress[4]}%)</span>}
-                  {pullStatuses[4] === "completed" && <span className="text-zinc-200">2.4MB: Pull complete</span>}
+                  {pullStatuses[4] === "completed" && (
+                    <span className="text-zinc-200">
+                      2.4MB: Pull complete<br />
+                      <span className="text-zinc-500 text-[8px] block pl-3">↳ Unique app code compiled on top layer</span>
+                    </span>
+                  )}
                 </div>
               )}
               {animationState === "complete" && (
