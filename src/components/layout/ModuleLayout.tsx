@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Module, getNextModule, getPrevModule } from "@/data/modules";
-import { cn } from "@/lib/utils";
+import { cn, formatMarkdownNode } from "@/lib/utils";
 import { GraduationCap, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { useAnimationStore } from "@/stores/animationStore";
 
@@ -65,7 +65,7 @@ export default function ModuleLayout({ module, children }: ModuleLayoutProps) {
               </button>
               {isExplExpanded && (
                 <div className="p-5 border-t border-[#232323] text-xs text-[#A1A1AA] leading-relaxed font-normal select-text max-h-[220px] overflow-y-auto custom-scrollbar font-sans bg-[#111111]">
-                  {activeExplanation}
+                  {formatMarkdownNode(activeExplanation)}
                 </div>
               )}
             </div>
@@ -78,7 +78,7 @@ export default function ModuleLayout({ module, children }: ModuleLayoutProps) {
               Overview
             </h3>
             <p className="text-xs text-[#A1A1AA] leading-relaxed font-normal font-sans">
-              {module.description}
+              {formatMarkdownNode(module.description)}
             </p>
           </div>
 
@@ -95,7 +95,7 @@ export default function ModuleLayout({ module, children }: ModuleLayoutProps) {
                   <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#171717] border border-[#2A2A2A] text-[10px] font-bold text-[#FAFAFA] shrink-0 mt-0.5 font-mono">
                     {i + 1}
                   </span>
-                  <span className="font-normal">{obj}</span>
+                  <span className="font-normal">{formatMarkdownNode(obj)}</span>
                 </li>
               ))}
             </ul>

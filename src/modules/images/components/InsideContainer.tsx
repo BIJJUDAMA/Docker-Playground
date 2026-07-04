@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatMarkdownNode } from "@/lib/utils";
 import { HelpCircle, Cpu, FileCode, Variable, Radio, ShieldAlert, Edit2, RotateCcw } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 
@@ -205,7 +205,7 @@ export default function InsideContainer() {
               {isCurrentModified && (
                 <div className="p-2.5 rounded-[9px] bg-white/5 border border-white/10 text-[9px] text-zinc-350 leading-relaxed font-sans mt-auto animate-fadeIn select-text">
                   <span className="font-bold text-white block mb-0.5">Copy-on-Write triggered:</span>
-                  `config.json` was duplicated from the immutable base image into **Container {activeTab}'s Writable Layer** upon editing.
+                  {formatMarkdownNode(`\`config.json\` was duplicated from the immutable base image into **Container ${activeTab}'s Writable Layer** upon editing.`)}
                 </div>
               )}
             </div>
@@ -241,7 +241,7 @@ export default function InsideContainer() {
               <ShieldAlert className="w-4 h-4 text-zinc-405 mb-1.5" />
               {isCurrentModified ? (
                 <span>
-                  Check **Container {activeTab === "A" ? "B" : "A"}**! Its `config.json` file is still pristine. This confirms filesystems are 100% sandboxed.
+                  {formatMarkdownNode(`Check **Container ${activeTab === "A" ? "B" : "A"}**! Its \`config.json\` file is still pristine. This confirms filesystems are 100% sandboxed.`)}
                 </span>
               ) : (
                 <span>

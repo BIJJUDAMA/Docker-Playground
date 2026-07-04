@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatMarkdownNode } from "@/lib/utils";
 import { HelpCircle, RefreshCw, Layers, Sparkles, AlertTriangle, ShieldCheck, ArrowDown } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 
@@ -321,14 +321,14 @@ export default function DockerfileOptimizer() {
               <span className="text-green-400 flex items-start gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
                 <span>
-                  **ULTRA OPTIMIZED!** Multi-stage builds and Alpine OS reduced your runtime image to only **82 MB** with zero bloat packages!
+                  {formatMarkdownNode("**ULTRA OPTIMIZED!** Multi-stage builds and Alpine OS reduced your runtime image to only **82 MB** with zero bloat packages!")}
                 </span>
               </span>
             ) : instructionOrder === "bad" ? (
               <span className="text-yellow-405 flex items-start gap-1">
                 <AlertTriangle className="w-3.5 h-3.5 text-yellow-405 shrink-0 mt-0.5" />
                 <span>
-                  **CACHE WARNING**: Running `COPY . .` before installing dependencies triggers package downloads on EVERY code edit. Click "Swap Down" to optimize.
+                  {formatMarkdownNode("**CACHE WARNING**: Running `COPY . .` before installing dependencies triggers package downloads on EVERY code edit. Click \"Swap Down\" to optimize.")}
                 </span>
               </span>
             ) : (

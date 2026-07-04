@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useAnimationControls } from "@/hooks/useAnimationControls";
-import { cn } from "@/lib/utils";
+import { cn, formatMarkdownNode } from "@/lib/utils";
 import { HelpCircle, RefreshCw, Layers, Clock, AlertTriangle, FileCode, CheckCircle2, ShieldAlert } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 
@@ -268,21 +268,21 @@ export default function LayerCachePlayground() {
               <span className="text-green-400 flex items-start gap-1">
                 <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
                 <span>
-                  **CACHE HIT!** README.md matches exclusions inside `.dockerignore`. Docker completely ignores it during COPY, preventing cache invalidation!
+                  {formatMarkdownNode("**CACHE HIT!** README.md matches exclusions inside `.dockerignore`. Docker completely ignores it during COPY, preventing cache invalidation!")}
                 </span>
               </span>
             ) : activeModification === "package" ? (
               <span className="text-yellow-405 flex items-start gap-1">
                 <ShieldAlert className="w-4 h-4 text-yellow-405 shrink-0 mt-0.5" />
                 <span>
-                  **CACHE BUSTED!** Modifying `package.json` invalidates step 3. Because `npm install` runs next, it must download and compile everything again, expanding build time to {buildTime}s.
+                  {formatMarkdownNode(`**CACHE BUSTED!** Modifying \`package.json\` invalidates step 3. Because \`npm install\` runs next, it must download and compile everything again, expanding build time to ${buildTime}s.`)}
                 </span>
               </span>
             ) : activeModification === "src" ? (
               <span className="text-green-400 flex items-start gap-1">
                 <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
                 <span>
-                  **OPTIMIZED HIT!** Modifying source files invalidates only step 5. The base image and `npm install` packages are reused directly from cache, finishing in only {buildTime}s!
+                  {formatMarkdownNode(`**OPTIMIZED HIT!** Modifying source files invalidates only step 5. The base image and \`npm install\` packages are reused directly from cache, finishing in only ${buildTime}s!`)}
                 </span>
               </span>
             ) : (

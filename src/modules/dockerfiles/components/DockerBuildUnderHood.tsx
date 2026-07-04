@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatMarkdownNode } from "@/lib/utils";
 import { HelpCircle, Terminal, Cpu, FileCheck, Layers, GitCommit, HardDrive, ShieldAlert, Sparkles } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 
@@ -182,7 +182,7 @@ export default function DockerBuildUnderHood() {
             <div className="p-3 rounded-[9px] border border-red-500/10 bg-red-950/5 text-red-400 text-[8.5px] leading-normal flex items-start gap-1.5 animate-fadeIn select-text">
               <ShieldAlert className="w-3.5 h-3.5 shrink-0 mt-0.5" />
               <span>
-                **Performance Warning**: Sending 240 MB build contexts to Daemon on every compile slows down execution. Turn on **.dockerignore** to drop heavy files!
+                {formatMarkdownNode("**Performance Warning**: Sending 240 MB build contexts to Daemon on every compile slows down execution. Turn on **.dockerignore** to drop heavy files!")}
               </span>
             </div>
           )}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatMarkdownNode } from "@/lib/utils";
 import { Folder, File, HelpCircle, HardDrive, ShieldCheck, ChevronRight, ChevronDown } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 
@@ -280,7 +280,7 @@ export default function ExploreImage() {
               <div className="p-3 rounded-[12px] bg-[#0d0d0e] border border-zinc-800/20 text-[9.5px] text-zinc-450 leading-relaxed flex items-center gap-1.5 font-sans">
                 <ShieldCheck className="w-4 h-4 text-zinc-450 shrink-0" />
                 <span>
-                  This file is located inside the immutable image layer, making it completely **Read-Only**.
+                  {formatMarkdownNode("This file is located inside the immutable image layer, making it completely **Read-Only**.")}
                 </span>
               </div>
 

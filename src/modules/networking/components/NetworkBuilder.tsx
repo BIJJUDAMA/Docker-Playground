@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatMarkdownNode } from "@/lib/utils";
 import { HelpCircle, RefreshCw, Network, Server, Database, Play, CheckCircle2, Monitor } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 import { NodePrimitive } from "@/components/primitives/NodePrimitive";
@@ -335,7 +335,7 @@ export default function NetworkBuilder() {
             <div className="p-3 rounded-[12px] bg-[#0d0d0e] border border-zinc-850 text-[9px] text-zinc-350 leading-relaxed flex items-start gap-2 select-text font-sans">
               <CheckCircle2 className="w-4 h-4 text-zinc-400 shrink-0 mt-0.5" />
               <span>
-                **NETWORK RUNNING!** Virtual ethernet pairs (`veth`) are allocated. Connected containers negotiate straight routes via IP addressing namespaces dynamically.
+                {formatMarkdownNode("**NETWORK RUNNING!** Virtual ethernet pairs (`veth`) are allocated. Connected containers negotiate straight routes via IP addressing namespaces dynamically.")}
               </span>
             </div>
           )}
