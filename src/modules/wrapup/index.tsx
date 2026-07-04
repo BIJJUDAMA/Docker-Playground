@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import CodeToProduction from "./components/CodeToProduction";
 import MultiStageBuildVisualizer from "./components/MultiStageBuildVisualizer";
 import DockerInProduction from "./components/DockerInProduction";
@@ -16,8 +16,12 @@ const STEPS = [
 ];
 
 export default function WrapupModule() {
-  const [activeStep, setActiveStep] = useState(0);
-  const { resetControls } = useAnimationStore();
+  const { activeStep, setActiveStep, setMaxSteps, resetControls } = useAnimationStore();
+
+  useEffect(() => {
+    setMaxSteps(STEPS.length);
+    setActiveStep(0);
+  }, [setMaxSteps, setActiveStep]);
 
   const handleStepChange = (stepId: number) => {
     setActiveStep(stepId);

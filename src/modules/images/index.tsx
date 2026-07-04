@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import ExploreImage from "./components/ExploreImage";
 import CreateContainers from "./components/CreateContainers";
 import InsideContainer from "./components/InsideContainer";
@@ -20,8 +20,12 @@ const STEPS = [
 ];
 
 export default function ImagesModule() {
-  const [activeStep, setActiveStep] = useState(0);
-  const { resetControls } = useAnimationStore();
+  const { activeStep, setActiveStep, setMaxSteps, resetControls } = useAnimationStore();
+
+  useEffect(() => {
+    setMaxSteps(STEPS.length);
+    setActiveStep(0);
+  }, [setMaxSteps, setActiveStep]);
 
   const handleStepChange = (stepId: number) => {
     setActiveStep(stepId);

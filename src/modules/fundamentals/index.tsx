@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
 import dynamic from "next/dynamic";
 import ObjectExplorer from "./components/ObjectExplorer";
 import EngineInternals from "./components/EngineInternals";
@@ -25,8 +25,12 @@ const STEPS = [
 ];
 
 export default function FundamentalsModule() {
-  const [activeStep, setActiveStep] = useState(0);
-  const { resetControls } = useAnimationStore();
+  const { activeStep, setActiveStep, setMaxSteps, resetControls } = useAnimationStore();
+
+  useEffect(() => {
+    setMaxSteps(STEPS.length);
+    setActiveStep(0);
+  }, [setMaxSteps, setActiveStep]);
 
   const handleStepChange = (stepId: number) => {
     setActiveStep(stepId);
