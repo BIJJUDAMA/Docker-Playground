@@ -19,6 +19,9 @@ const monoFont = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Docker Playground",
   description: "Learn Docker concepts through interactive visual guides, live GSAP animations, bridge networks, container lifecycles, and dockerfiles.",
+  icons: {
+    icon: "/docker-playground.webp",
+  },
 };
 
 export default function RootLayout({
