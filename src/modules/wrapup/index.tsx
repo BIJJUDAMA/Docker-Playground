@@ -1,18 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import CicdPipeline from "./components/CicdPipeline";
-import MultiStageBuild from "./components/MultiStageBuild";
-import DockerfileOptimizer from "./components/DockerfileOptimizer";
-import FinalArchitecture from "./components/FinalArchitecture";
+import CodeToProduction from "./components/CodeToProduction";
+import MultiStageBuildVisualizer from "./components/MultiStageBuildVisualizer";
+import DockerInProduction from "./components/DockerInProduction";
+import CompleteSystemSimulation from "./components/CompleteSystemSimulation";
 import { cn } from "@/lib/utils";
 import { useAnimationStore } from "@/stores/animationStore";
 
 const STEPS = [
-  { id: 0, label: "CI/CD Pipeline" },
-  { id: 1, label: "Multi-Stage Builds" },
-  { id: 2, label: "Dockerfile Optimizer" },
-  { id: 3, label: "Final Architecture" }
+  { id: 0, label: "From Code to Production" },
+  { id: 1, label: "Multi-Stage Build Visualizer" },
+  { id: 2, label: "Docker in Production" },
+  { id: 3, label: "Complete System Simulation" }
 ];
 
 export default function WrapupModule() {
@@ -37,7 +37,7 @@ export default function WrapupModule() {
               "text-xs font-semibold py-3 px-4 border-b-2 -mb-[1px] transition-all whitespace-nowrap focus:outline-none cursor-pointer",
               activeStep === step.id
                 ? "border-[#FAFAFA] text-[#FAFAFA] font-bold"
-                : "border-transparent text-zinc-500 hover:text-zinc-350"
+                : "border-transparent text-zinc-550 hover:text-zinc-350"
             )}
           >
             {step.label}
@@ -47,10 +47,10 @@ export default function WrapupModule() {
 
       {/* Render the active visualization component */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-        {activeStep === 0 && <CicdPipeline />}
-        {activeStep === 1 && <MultiStageBuild />}
-        {activeStep === 2 && <DockerfileOptimizer />}
-        {activeStep === 3 && <FinalArchitecture />}
+        {activeStep === 0 && <CodeToProduction />}
+        {activeStep === 1 && <MultiStageBuildVisualizer />}
+        {activeStep === 2 && <DockerInProduction />}
+        {activeStep === 3 && <CompleteSystemSimulation />}
       </div>
 
     </div>
