@@ -203,8 +203,61 @@ export default function CopyOnWrite() {
             </span>
             <h4 className="text-sm font-extrabold text-white">Filesystem Actions</h4>
             <p className="text-xs text-zinc-400 leading-relaxed font-normal mt-2 select-text">
-              Trigger file read or modify events to trace OCI storage engine lookups.
+              Follow the steps below to observe how container reading and editing are handled.
             </p>
+          </div>
+
+          {/* Interactive Steps Walkthrough */}
+          <div className="p-3 rounded-[12px] border border-zinc-850 bg-[#0d0d0e] flex flex-col gap-2 font-sans select-text">
+            <span className="text-[8.5px] font-mono uppercase tracking-wider text-zinc-500 font-bold">
+              Trace Walkthrough Steps:
+            </span>
+            <div className="flex flex-col gap-2.5">
+              {/* Step 1 */}
+              <div className="flex items-start gap-2.5 text-[10px]">
+                <div className={cn(
+                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 font-mono text-[8px] mt-0.5 transition-all duration-300",
+                  terminalLog.includes("zero copy")
+                    ? "bg-white border-transparent text-black font-bold"
+                    : "border-zinc-800 text-zinc-500"
+                )}>
+                  {terminalLog.includes("zero copy") ? "✓" : "1"}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className={cn(
+                    "font-bold transition-all duration-300",
+                    terminalLog.includes("zero copy") ? "text-zinc-500 line-through" : "text-zinc-200"
+                  )}>
+                    Step 1: Read index.html
+                  </span>
+                  <span className="text-[9px] text-zinc-500 leading-normal">
+                    Learn how reading accesses the read-only layer directly with no extra copies.
+                  </span>
+                </div>
+              </div>
+              {/* Step 2 */}
+              <div className="flex items-start gap-2.5 text-[10px]">
+                <div className={cn(
+                  "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 font-mono text-[8px] mt-0.5 transition-all duration-300",
+                  animationState === "modified"
+                    ? "bg-white border-transparent text-black font-bold"
+                    : "border-zinc-800 text-zinc-500"
+                )}>
+                  {animationState === "modified" ? "✓" : "2"}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className={cn(
+                    "font-bold transition-all duration-300",
+                    animationState === "modified" ? "text-zinc-500 line-through" : "text-zinc-200"
+                  )}>
+                    Step 2: Modify app.js
+                  </span>
+                  <span className="text-[9px] text-zinc-500 leading-normal">
+                    Observe Copy-on-Write duplicate and modify the file inside UpperDir.
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col gap-2">

@@ -39,7 +39,7 @@ const LIFECYCLE_STATES: LifecycleState[] = [
     cmd: "docker pause web",
     icon: <PauseCircle className="w-4 h-4 text-zinc-400" />,
     desc: "The container is suspended. The engine utilizes the cgroups freezer subsystem to freeze all active processes in place. The CPU allocations are halted, but RAM states persist.",
-    kernelAction: "SIGSTOP signal passed. Freezer cgroups subsystems freeze all container PID states. Memory states remain cached."
+    kernelAction: "SIGSTOP signal passed. Freezer cgroups subsystems freeze all container PID states. Memory states remain frozen in RAM."
   },
   {
     id: "stopped",
