@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useAnimationControls } from "@/hooks/useAnimationControls";
+import { useAnimationStore } from "@/stores/animationStore";
 import { NodePrimitive } from "@/components/primitives/NodePrimitive";
 import { PacketPrimitive } from "@/components/primitives/PacketPrimitive";
 import VisualCanvas from "@/components/layout/VisualCanvas";
@@ -34,8 +35,34 @@ export default function EngineInternals() {
   const packetRef = useRef<HTMLDivElement>(null);
   const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
 
+  const { setPlaying } = useAnimationStore();
+
   // Register timeline with playback controllers
   const { isPlaying } = useAnimationControls(timeline);
+
+  const Y_MAP: Record<string, number> = {
+    cli: 0,
+    rest: 48,
+    daemon: 96,
+    containerd: 144,
+    runc: 192,
+    kernel: 240
+  };
+
+  const handleStepClick = (id: string) => {
+    if (timeline) {
+      timeline.pause();
+    }
+    setPlaying(false);
+    setActiveStepId(id);
+    gsap.to(packetRef.current, {
+      y: Y_MAP[id],
+      opacity: 1,
+      scale: 1,
+      duration: 0.4,
+      ease: "power2.out"
+    });
+  };
 
   useEffect(() => {
     // Reset positions
@@ -105,6 +132,7 @@ export default function EngineInternals() {
   const handleReset = () => {
     setAnimationState("idle");
     setActiveStepId("cli");
+    setPlaying(false);
     if (timeline) {
       timeline.pause().progress(0);
     }
@@ -157,6 +185,7 @@ export default function EngineInternals() {
                       status={isActive ? "running" : "idle"}
                       icon={sub.icon}
                       subtitle={sub.subtitle}
+                      onClick={() => handleStepClick(sub.id)}
                       className={cn(
                         "py-1.5 px-3.5 h-full rounded-[9px] transition-all duration-300",
                         isActive ? "scale-[1.01]" : "opacity-80"
