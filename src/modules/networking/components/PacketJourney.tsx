@@ -17,12 +17,12 @@ interface NetHop {
 }
 
 const HOPS: NetHop[] = [
-  { id: "browser", label: "Browser", x: 30 },
+  { id: "browser", label: "Browser", x: 20 },
   { id: "host", label: "Host Port (8080)", x: 120 },
-  { id: "network", label: "Docker Network", x: 210 },
-  { id: "front", label: "Frontend App", x: 300 },
-  { id: "back", label: "Backend Service", x: 390 },
-  { id: "db", label: "Postgres Database", x: 480 }
+  { id: "network", label: "Docker Network", x: 220 },
+  { id: "front", label: "Frontend App", x: 320 },
+  { id: "back", label: "Backend Service", x: 420 },
+  { id: "db", label: "Postgres Database", x: 520 }
 ];
 
 export default function PacketJourney() {
@@ -47,7 +47,7 @@ export default function PacketJourney() {
       timeline.pause().progress(0);
     }
 
-    gsap.set(packetRef.current, { x: 30, opacity: 0, scale: 0, backgroundColor: "#FAFAFA" });
+    gsap.set(packetRef.current, { x: 58, opacity: 0, scale: 0, backgroundColor: "#FAFAFA" });
     HOPS.forEach(h => {
       gsap.set(`#hop-node-${h.id}`, { clearProps: "all" });
     });
@@ -70,13 +70,13 @@ export default function PacketJourney() {
 
     setTimeline(tl);
 
-    // Initial packet reveal at browser (x: 30)
-    gsap.set(packetRef.current, { x: 30, opacity: 0, scale: 0.8, backgroundColor: "#FAFAFA" });
+    // Initial packet reveal at browser (x: 58)
+    gsap.set(packetRef.current, { x: 58, opacity: 0, scale: 0.8, backgroundColor: "#FAFAFA" });
     tl.to(packetRef.current, { opacity: 1, scale: 1, duration: 0.2 })
 
-      // Browser -> Host (x: 120)
+      // Browser -> Host (x: 158)
       .to(packetRef.current, {
-        x: 120,
+        x: 158,
         duration: 0.8,
         ease: "power1.inOut",
         onStart: () => {
@@ -100,9 +100,9 @@ export default function PacketJourney() {
       return;
     }
 
-    // Host -> Network (x: 210)
+    // Host -> Network (x: 258)
     tl.to(packetRef.current, {
-      x: 210,
+      x: 258,
       duration: 0.8,
       ease: "power1.inOut",
       onStart: () => {
@@ -126,9 +126,9 @@ export default function PacketJourney() {
       return;
     }
 
-    // Network -> Frontend (x: 300)
+    // Network -> Frontend (x: 358)
     tl.to(packetRef.current, {
-      x: 300,
+      x: 358,
       duration: 0.8,
       ease: "power1.inOut",
       onStart: () => {
@@ -137,9 +137,9 @@ export default function PacketJourney() {
       }
     })
 
-    // Frontend -> Backend (x: 390)
+    // Frontend -> Backend (x: 458)
     .to(packetRef.current, {
-      x: 390,
+      x: 458,
       duration: 0.8,
       ease: "power1.inOut",
       onStart: () => {
@@ -163,9 +163,9 @@ export default function PacketJourney() {
       return;
     }
 
-    // Backend -> Database (x: 480)
+    // Backend -> Database (x: 558)
     tl.to(packetRef.current, {
-      x: 480,
+      x: 558,
       duration: 0.8,
       ease: "power1.inOut",
       onStart: () => {
@@ -198,7 +198,7 @@ export default function PacketJourney() {
       }
     })
     .to(packetRef.current, {
-      x: 30,
+      x: 58,
       duration: 2.0,
       ease: "power2.inOut",
       onStart: () => {
@@ -242,15 +242,15 @@ export default function PacketJourney() {
         {/* Schematic pipeline Canvas (Left) */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px] overflow-x-auto custom-scrollbar">
           
-          <div className="w-[520px] h-32 relative flex items-center justify-between py-2 px-6">
+          <div className="w-[620px] h-32 relative py-2">
             
             {/* Pathway track wire */}
-            <div className="absolute top-[41px] left-[35px] right-[35px] h-0.5 border-t border-dashed border-zinc-850 pointer-events-none z-0" />
+            <div className="absolute top-[59px] left-[60px] right-[60px] h-0.5 border-t border-dashed border-zinc-850 pointer-events-none z-0" />
 
             {/* Request Packet Orb */}
             <div
               ref={packetRef}
-              className="absolute w-2.5 h-2.5 rounded-full top-[37px] left-0 pointer-events-none z-20 opacity-0 scale-0 shadow-[0_0_8px_currentColor]"
+              className="absolute w-2.5 h-2.5 rounded-full top-[55px] left-0 pointer-events-none z-20 opacity-0 scale-0 shadow-[0_0_8px_currentColor]"
             />
 
             {/* Hop Nodes */}
@@ -261,15 +261,15 @@ export default function PacketJourney() {
                   key={hop.id} 
                   id={`hop-node-${hop.id}`}
                   className={cn(
-                    "w-16 p-2 rounded-[8px] border text-center transition-all duration-300 flex flex-col justify-center gap-1 z-10",
+                    "absolute top-8 p-1.5 rounded-[8px] border text-center transition-all duration-300 flex flex-col justify-center gap-0.5 z-10 select-text",
                     isActive 
                       ? "bg-white/5 border-white text-white font-bold scale-105" 
                       : "bg-[#0d0d0e] border-zinc-850 text-zinc-550"
                   )}
-                  style={{ width: "70px" }}
+                  style={{ left: `${hop.x}px`, width: "80px", height: "54px" }}
                 >
-                  <span className="text-[7px] uppercase tracking-wider font-mono font-bold">Node</span>
-                  <span className="text-[7.5px] truncate max-w-full font-bold">{hop.label}</span>
+                  <span className="text-[6.5px] uppercase tracking-wider font-mono font-bold select-none">Node</span>
+                  <span className="text-[7.5px] leading-tight font-bold font-sans">{hop.label}</span>
                 </div>
               );
             })}
