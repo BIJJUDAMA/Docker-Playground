@@ -54,10 +54,10 @@ export default function CreateContainers() {
     setTimeline(tl);
 
     // Dynamic vertical offsets based on target instance slot
-    // Container slot 1: y = -48px
+    // Container slot 1: y = -56px
     // Container slot 2: y = 0px
-    // Container slot 3: y = 48px
-    const yOffset = (nextId === 1) ? -48 : (nextId === 2) ? 0 : 48;
+    // Container slot 3: y = 56px
+    const yOffset = (nextId === 1) ? -56 : (nextId === 2) ? 0 : 56;
 
     gsap.set(spawnRef.current, { x: 0, y: 0, scale: 0.8, opacity: 0 });
 
@@ -67,7 +67,7 @@ export default function CreateContainers() {
       duration: 0.3
     })
     .to(spawnRef.current, {
-      x: 180,
+      x: 300,
       y: yOffset,
       duration: 1.0,
       ease: "power2.inOut"
@@ -111,7 +111,7 @@ export default function CreateContainers() {
             {/* Spawning capsule element (flies between left and right) */}
             <div 
               ref={spawnRef}
-              className="absolute left-[130px] w-32 py-1.5 rounded-[8px] border border-zinc-700 bg-zinc-850 text-white font-mono text-[8px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md pointer-events-none opacity-0 scale-0 z-20"
+              className="absolute left-[20px] top-[94px] w-32 py-1.5 rounded-[8px] border border-zinc-700 bg-zinc-850 text-white font-mono text-[8px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md pointer-events-none opacity-0 scale-0 z-20"
             >
               <Box className="w-3.5 h-3.5 text-zinc-300" />
               run instance
@@ -120,14 +120,14 @@ export default function CreateContainers() {
             {/* Static Connection vectors in background (visible on desktop) */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 hidden md:block">
               {containers.map((c) => {
-                const yTarget = (c.id === 1) ? 62 : (c.id === 2) ? 110 : 158;
+                const yTarget = (c.id === 1) ? 60 : (c.id === 2) ? 116 : 172;
                 const isHovered = hoveredContainerId === c.id;
                 return (
                   <g key={c.id}>
                     <line 
-                      x1={180} 
-                      y1={110} 
-                      x2={340} 
+                      x1={160} 
+                      y1={116} 
+                      x2={320} 
                       y2={yTarget} 
                       stroke={isHovered ? "#FAFAFA" : "#1f1f23"} 
                       strokeWidth={isHovered ? 1.5 : 1}
@@ -135,7 +135,7 @@ export default function CreateContainers() {
                       className="transition-all duration-300"
                     />
                     {isHovered && (
-                      <circle cx={180} cy={110} r="3" fill="#FAFAFA" className="animate-ping" />
+                      <circle cx={160} cy={116} r="3" fill="#FAFAFA" className="animate-ping" />
                     )}
                   </g>
                 );
@@ -165,34 +165,36 @@ export default function CreateContainers() {
             </div>
 
             {/* Right: Containers list */}
-            <div className="w-44 flex flex-col gap-2 min-h-[160px] justify-center shrink-0 z-10">
-              <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-zinc-550 text-center">
+            <div className="w-48 flex flex-col gap-3 min-h-[170px] justify-center shrink-0 z-10 relative">
+              <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-zinc-550 text-center mb-1">
                 Running Containers
               </span>
-
-              {containers.length > 0 ? (
-                containers.map((c) => (
-                  <div 
-                    key={c.id} 
-                    onMouseEnter={() => setHoveredContainerId(c.id)}
-                    onMouseLeave={() => setHoveredContainerId(null)}
-                    className="animate-fadeIn"
-                  >
-                    <NodePrimitive
-                      label={c.name}
-                      status="running"
-                      icon={<Box className="w-3.5 h-3.5 text-white" />}
-                      subtitle={`IP: 172.17.0.${c.id + 1} | Port ${c.port}`}
-                      className="py-1.5 px-3 rounded-[9px] border-zinc-850 bg-[#0d0d0e]/60"
-                    />
+              {[1, 2, 3].map((slotId) => {
+                const container = containers.find(c => c.id === slotId);
+                return (
+                  <div key={slotId} id={`container-slot-${slotId}`} className="h-[44px]">
+                    {container ? (
+                      <div 
+                        onMouseEnter={() => setHoveredContainerId(container.id)}
+                        onMouseLeave={() => setHoveredContainerId(null)}
+                        className="animate-fadeIn"
+                      >
+                        <NodePrimitive
+                          label={container.name}
+                          status="running"
+                          icon={<Box className="w-3.5 h-3.5 text-white" />}
+                          subtitle={`IP: 172.17.0.${container.id + 1} | Port ${container.port}`}
+                          className="py-1.5 px-3 rounded-[9px] border-zinc-850 bg-[#0d0d0e]/60"
+                        />
+                      </div>
+                    ) : (
+                      <div className="border border-dashed border-zinc-850 rounded-[9px] h-full flex items-center justify-center text-[7.5px] text-zinc-650 italic bg-[#0d0d0e]/15">
+                        Slot {slotId} (Inactive)
+                      </div>
+                    )}
                   </div>
-                ))
-              ) : (
-                <div className="border border-dashed border-zinc-850 rounded-[12px] p-5 text-center text-[9px] text-zinc-650 italic bg-[#0d0d0e]/40 flex flex-col items-center justify-center gap-1">
-                  <Box className="w-4 h-4 text-zinc-750" />
-                  <span>No instances running</span>
-                </div>
-              )}
+                );
+              })}
             </div>
 
           </div>
