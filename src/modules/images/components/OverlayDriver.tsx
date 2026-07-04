@@ -35,11 +35,16 @@ export default function OverlayDriver() {
     if (timeline) {
       timeline.pause().progress(0);
     }
+    gsap.set(["#upper-logs-txt", "#merged-logs-txt", "#upper-server-py", "#upper--wh-config-json"], { clearProps: "all" });
+    gsap.set(["#lower-server-py", "#lower-config-json", "#merged-server-py", "#merged-config-json"], { clearProps: "all" });
   }, [timeline]);
 
   const handleWriteLogs = () => {
     setActiveAction("write");
-    setTerminalLog("container$ touch logs.txt\nCreating a new log file in running container...");
+    setTerminalLog("container$ touch logs.txt\nCreating a new log file in running container UpperDir...");
+
+    // Instantly append so DOM nodes exist and can be controlled by GSAP
+    setUpperDirFiles([{ name: "logs.txt", status: "added", desc: "Active system logging output" }]);
 
     if (timeline) {
       timeline.kill();
@@ -47,17 +52,41 @@ export default function OverlayDriver() {
 
     const tl = gsap.timeline({
       onComplete: () => {
-        setUpperDirFiles((prev) => [...prev.filter(f => f.name !== "logs.txt"), { name: "logs.txt", status: "added", desc: "Active system logging output" }]);
         setTerminalLog("container$ touch logs.txt\n[SUCCESS] New file created in Writable Container Layer (UpperDir). Immediate visibility inside MergedDir view.");
       }
     });
     setTimeline(tl);
-    tl.to({}, { duration: 0.8 });
+
+    tl.set(["#upper-logs-txt", "#merged-logs-txt"], { opacity: 0, scale: 0.85 })
+      .to("#upper-logs-txt", {
+        opacity: 1,
+        scale: 1,
+        borderColor: "#FAFAFA",
+        duration: 0.5,
+        ease: "back.out(1.5)"
+      })
+      .to("#upper-logs-txt", {
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        duration: 0.3
+      })
+      .to("#merged-logs-txt", {
+        opacity: 1,
+        scale: 1,
+        borderColor: "#FAFAFA",
+        duration: 0.5,
+        ease: "back.out(1.5)"
+      }, "-=0.2")
+      .to("#merged-logs-txt", {
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        duration: 0.3
+      });
   };
 
   const handleModifyServer = () => {
     setActiveAction("modify");
-    setTerminalLog("container$ vi server.py\nModifying application script runner...");
+    setTerminalLog("container$ vi server.py\nInitiating Copy-on-Write (CoW) transaction for edit...");
+
+    setUpperDirFiles([{ name: "server.py", status: "modified", desc: "Modified runner script" }]);
 
     if (timeline) {
       timeline.kill();
@@ -65,17 +94,44 @@ export default function OverlayDriver() {
 
     const tl = gsap.timeline({
       onComplete: () => {
-        setUpperDirFiles((prev) => [...prev.filter(f => f.name !== "server.py"), { name: "server.py", status: "modified", desc: "Modified runner script" }]);
         setTerminalLog("container$ vi server.py\n[SUCCESS] server.py duplicated to Writable Container Layer (UpperDir) and modified. Shadowing the original file in LowerDir.");
       }
     });
     setTimeline(tl);
-    tl.to({}, { duration: 1.0 });
+
+    tl.set("#upper-server-py", { opacity: 0, scale: 0.85 })
+      .to("#lower-server-py", {
+        scale: 1.08,
+        borderColor: "#FAFAFA",
+        duration: 0.4,
+        yoyo: true,
+        repeat: 1
+      })
+      .to("#upper-server-py", {
+        opacity: 1,
+        scale: 1,
+        borderColor: "#FAFAFA",
+        duration: 0.6,
+        ease: "power2.out"
+      })
+      .to("#upper-server-py", {
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        duration: 0.3
+      })
+      .to("#merged-server-py", {
+        scale: 1.05,
+        borderColor: "#FAFAFA",
+        duration: 0.3,
+        yoyo: true,
+        repeat: 1
+      }, "-=0.2");
   };
 
   const handleDeleteConfig = () => {
     setActiveAction("delete");
-    setTerminalLog("container$ rm config.json\nDeleting baseline config file...");
+    setTerminalLog("container$ rm config.json\nDeleting baseline config file inside running container...");
+
+    setUpperDirFiles([{ name: ".wh.config.json", status: "whiteout", desc: "Overlay2 Whiteout masking marker" }]);
 
     if (timeline) {
       timeline.kill();
@@ -83,12 +139,36 @@ export default function OverlayDriver() {
 
     const tl = gsap.timeline({
       onComplete: () => {
-        setUpperDirFiles((prev) => [...prev.filter(f => f.name !== "config.json"), { name: ".wh.config.json", status: "whiteout", desc: "Overlay2 Whiteout masking marker" }]);
         setTerminalLog("container$ rm config.json\n[SUCCESS] Created .wh.config.json whiteout file in Writable Container Layer (UpperDir) to mask config.json from MergedDir view.");
       }
     });
     setTimeline(tl);
-    tl.to({}, { duration: 1.0 });
+
+    tl.set("#upper--wh-config-json", { opacity: 0, scale: 0.85 })
+      .to("#lower-config-json", {
+        scale: 1.08,
+        borderColor: "rgba(239, 68, 68, 0.4)",
+        duration: 0.4,
+        yoyo: true,
+        repeat: 1
+      })
+      .to("#upper--wh-config-json", {
+        opacity: 1,
+        scale: 1,
+        borderColor: "#ef4444",
+        duration: 0.6,
+        ease: "power2.out"
+      })
+      .to("#merged-config-json", {
+        opacity: 0.2,
+        scale: 0.9,
+        borderColor: "#ef4444",
+        duration: 0.4
+      }, "-=0.3")
+      .to("#merged-config-json", {
+        display: "none",
+        duration: 0.1
+      });
   };
 
   const getMergedFiles = (): FileItem[] => {
@@ -149,8 +229,9 @@ export default function OverlayDriver() {
                 upperDirFiles.map((file, i) => (
                   <div 
                     key={i} 
+                    id={`upper-${file.name.replace(".", "-")}`}
                     className={cn(
-                      "p-2.5 rounded-[9px] border flex items-center justify-between font-mono text-[9px] relative overflow-hidden animate-fadeIn",
+                      "p-2.5 rounded-[9px] border flex items-center justify-between font-mono text-[9px] relative overflow-hidden transition-all duration-300",
                       file.status === "modified" && "border-zinc-700 bg-zinc-800/20 text-zinc-200",
                       file.status === "whiteout" && "border-red-500/20 bg-red-950/5 text-red-400",
                       file.status === "added" && "border-white/10 bg-white/5 text-white"
@@ -186,11 +267,12 @@ export default function OverlayDriver() {
                 return (
                   <div 
                     key={i} 
+                    id={`lower-${file.name.replace(".", "-")}`}
                     className={cn(
-                      "p-2.5 rounded-[9px] border-0 flex items-center justify-between font-mono text-[9px]",
+                      "p-2.5 rounded-[9px] border border-transparent flex items-center justify-between font-mono text-[9px] transition-all duration-300",
                       isShadowed 
-                        ? "bg-transparent text-zinc-600 line-through" 
-                        : "bg-[#1a1a1e] text-zinc-300"
+                        ? "bg-transparent text-zinc-600 line-through opacity-30" 
+                        : "bg-[#1a1a1e] text-zinc-300 border-zinc-850"
                     )}
                   >
                     <div className="flex items-center gap-1.5">
@@ -227,8 +309,9 @@ export default function OverlayDriver() {
                   return (
                     <div 
                       key={i} 
+                      id={`merged-${file.name.replace(".", "-")}`}
                       className={cn(
-                        "p-2.5 rounded-[9px] border border-zinc-850 font-mono text-[9px] flex items-center justify-between animate-fadeIn",
+                        "p-2.5 rounded-[9px] border border-zinc-850 font-mono text-[9px] flex items-center justify-between transition-all duration-300",
                         isModified && "border-zinc-700 text-zinc-200 bg-zinc-800/20",
                         isAdded && "border-white/10 text-white bg-white/5",
                         !isModified && !isAdded && "text-zinc-350 bg-[#1a1a1e] border-transparent"
