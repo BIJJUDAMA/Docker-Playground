@@ -53,7 +53,7 @@ const LIFECYCLE_STATES: LifecycleState[] = [
     id: "removed",
     name: "Removed",
     cmd: "docker rm web",
-    icon: <Trash2 className="w-4 h-4 text-zinc-600" />,
+    icon: <Trash2 className="w-4 h-4 text-zinc-650" />,
     desc: "The container is deleted. The engine removes the writable UpperDir directory files and destroys all registered host namespace/cgroups structure configurations.",
     kernelAction: "Local writable UpperDir folder deleted recursively. Subsystem namespaces and cgroups directory configurations destroyed."
   }
@@ -83,87 +83,94 @@ export default function ContainerLifecycle() {
       <div className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
         
         {/* State Machine Graph Canvas (Left) */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px]">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px] overflow-hidden">
           
-          {/* Connection vectors in background */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-            {/* Created -> Running */}
-            <EdgePrimitive x1={150} y1={80} x2={270} y2={80} curveType="straight" active={activeStateId === "created" || activeStateId === "running"} />
-            {/* Running -> Paused */}
-            <EdgePrimitive x1={360} y1={80} x2={480} y2={80} curveType="straight" active={activeStateId === "running" || activeStateId === "paused"} />
-            {/* Running -> Stopped */}
-            <EdgePrimitive x1={315} y1={120} x2={315} y2={220} curveType="straight" active={activeStateId === "running" || activeStateId === "stopped"} />
-            {/* Stopped -> Removed */}
-            <EdgePrimitive x1={270} y1={260} x2={150} y2={260} curveType="straight" active={activeStateId === "stopped" || activeStateId === "removed"} />
-          </svg>
+          {/* Scalable Container to lock coordinates and prevent line drift */}
+          <div className="origin-center transition-all duration-305 flex items-center justify-center shrink-0 w-full scale-[0.8] xs:scale-[0.85] sm:scale-100 md:scale-[1.05] lg:scale-[1.15]">
+            <div className="w-[500px] h-[220px] relative shrink-0">
+              
+              {/* Connection vectors in background */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                {/* Created -> Running (x1: 164, y1: 42 -> x2: 182, y2: 42) */}
+                <EdgePrimitive x1={164} y1={42} x2={182} y2={42} curveType="straight" active={activeStateId === "created" || activeStateId === "running"} />
+                {/* Running -> Paused (x1: 326, y1: 42 -> x2: 344, y2: 42) */}
+                <EdgePrimitive x1={326} y1={42} x2={344} y2={42} curveType="straight" active={activeStateId === "running" || activeStateId === "paused"} />
+                {/* Running -> Stopped (x1: 254, y1: 64 -> x2: 254, y2: 160) */}
+                <EdgePrimitive x1={254} y1={64} x2={254} y2={160} curveType="straight" active={activeStateId === "running" || activeStateId === "stopped"} />
+                {/* Stopped -> Removed (x1: 182, y1: 182 -> x2: 164, y2: 182) */}
+                <EdgePrimitive x1={182} y1={182} x2={164} y2={182} curveType="straight" active={activeStateId === "stopped" || activeStateId === "removed"} />
+              </svg>
 
-          <div className="w-full max-w-xl h-72 relative z-10 flex flex-col justify-between py-2">
-            {/* Top Row: Created, Running, Paused */}
-            <div className="flex justify-between items-center w-full">
+              {/* Absolute positioned state Nodes */}
+              
+              {/* 1. Created */}
               <div 
                 onClick={() => setActiveStateId("created")}
-                className="w-36 cursor-pointer hover:scale-[1.01] transition-transform"
+                className="absolute left-[20px] top-[20px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
               >
                 <NodePrimitive
                   label="Created"
                   status={activeStateId === "created" ? "running" : "idle"}
                   icon={<PlusCircle className="w-4 h-4 text-zinc-300" />}
-                  className="py-2.5 px-3 rounded-[12px]"
+                  className="py-2 px-3 rounded-[9px]"
                 />
               </div>
 
+              {/* 2. Running */}
               <div 
                 onClick={() => setActiveStateId("running")}
-                className="w-36 cursor-pointer hover:scale-[1.01] transition-transform"
+                className="absolute left-[182px] top-[20px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
               >
                 <NodePrimitive
                   label="Running"
                   status={activeStateId === "running" ? "running" : "idle"}
                   icon={<PlayCircle className="w-4 h-4 text-white" />}
-                  className="py-2.5 px-3 rounded-[12px]"
+                  className="py-2 px-3 rounded-[9px]"
                 />
               </div>
 
+              {/* 3. Paused */}
               <div 
                 onClick={() => setActiveStateId("paused")}
-                className="w-36 cursor-pointer hover:scale-[1.01] transition-transform"
+                className="absolute left-[344px] top-[20px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
               >
                 <NodePrimitive
                   label="Paused"
                   status={activeStateId === "paused" ? "running" : "idle"}
                   icon={<PauseCircle className="w-4 h-4 text-zinc-400" />}
-                  className="py-2.5 px-3 rounded-[12px]"
-                />
-              </div>
-            </div>
-
-            {/* Bottom Row: Removed, Stopped */}
-            <div className="flex justify-start gap-[106px] items-center w-full">
-              <div 
-                onClick={() => setActiveStateId("removed")}
-                className="w-36 cursor-pointer hover:scale-[1.01] transition-transform"
-              >
-                <NodePrimitive
-                  label="Removed"
-                  status={activeStateId === "removed" ? "running" : "idle"}
-                  icon={<Trash2 className="w-4 h-4 text-zinc-650" />}
-                  className="py-2.5 px-3 rounded-[12px]"
+                  className="py-2 px-3 rounded-[9px]"
                 />
               </div>
 
+              {/* 4. Stopped */}
               <div 
                 onClick={() => setActiveStateId("stopped")}
-                className="w-36 cursor-pointer hover:scale-[1.01] transition-transform"
+                className="absolute left-[182px] top-[160px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
               >
                 <NodePrimitive
                   label="Stopped"
                   status={activeStateId === "stopped" ? "running" : "idle"}
                   icon={<StopCircle className="w-4 h-4 text-zinc-500" />}
-                  className="py-2.5 px-3 rounded-[12px]"
+                  className="py-2 px-3 rounded-[9px]"
                 />
               </div>
+
+              {/* 5. Removed */}
+              <div 
+                onClick={() => setActiveStateId("removed")}
+                className="absolute left-[20px] top-[160px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
+              >
+                <NodePrimitive
+                  label="Removed"
+                  status={activeStateId === "removed" ? "running" : "idle"}
+                  icon={<Trash2 className="w-4 h-4 text-zinc-650" />}
+                  className="py-2 px-3 rounded-[9px]"
+                />
+              </div>
+
             </div>
           </div>
+
         </div>
 
         {/* State Detail Inspector (Right) */}
@@ -182,8 +189,8 @@ export default function ContainerLifecycle() {
           </div>
 
           {/* Trigger Command block */}
-          <div className="p-3 bg-[#0d0d0e] rounded-[9px] border border-zinc-850 font-mono text-[9px] text-zinc-400 select-text">
-            <div className="text-zinc-200 font-bold flex items-center gap-1.5 mb-1 select-none">
+          <div className="p-3 bg-[#0d0d0e] rounded-[9px] border border-zinc-850 font-mono text-[9px] text-zinc-450 select-text">
+            <div className="text-zinc-200 font-bold flex items-center gap-1.5 mb-1 select-none font-sans">
               <ArrowRight className="w-3 h-3 text-zinc-450" />
               CLI Command:
             </div>
@@ -191,7 +198,7 @@ export default function ContainerLifecycle() {
           </div>
 
           {/* Linux kernel level detail */}
-          <div className="p-3.5 rounded-[12px] bg-[#0d0d0e] border border-zinc-800/20 text-[9.5px] text-zinc-450 leading-relaxed flex-1 select-text font-sans">
+          <div className="p-3.5 rounded-[12px] bg-[#0d0d0e] border border-zinc-800/25 text-[9px] text-zinc-450 leading-relaxed flex-1 select-text font-sans">
             <span className="font-bold block mb-0.5 text-zinc-200">OS Kernel Transaction:</span>
             {activeState.kernelAction}
           </div>
