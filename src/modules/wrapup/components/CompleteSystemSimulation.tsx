@@ -1,12 +1,26 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import gsap from "gsap";
 import { useAnimationControls } from "@/hooks/useAnimationControls";
 import { cn } from "@/lib/utils";
-import { HelpCircle, RefreshCw, Folder, Box, HardDrive, Network, Server, Play, ShieldCheck, CheckCircle2, AlertTriangle } from "lucide-react";
+import { HelpCircle, RefreshCw, Folder, Box, HardDrive, Server, Play, ShieldCheck, CheckCircle2, AlertTriangle } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 import { NodePrimitive } from "@/components/primitives/NodePrimitive";
+import { useAnimationStore } from "@/stores/animationStore";
+
+interface CoordsState {
+  codeCenter: { x: number; y: number };
+  codeEdge: { x: number; y: number };
+  buildCenter: { x: number; y: number };
+  buildEdgeLeft: { x: number; y: number };
+  buildEdgeRight: { x: number; y: number };
+  netCenter: { x: number; y: number };
+  netEdgeLeft: { x: number; y: number };
+  netEdgeRight: { x: number; y: number };
+  volCenter: { x: number; y: number };
+  volEdgeLeft: { x: number; y: number };
+}
 
 export default function CompleteSystemSimulation() {
   const [useVolume, setUseVolume] = useState<boolean>(true);
@@ -18,9 +32,77 @@ export default function CompleteSystemSimulation() {
   const [activeStage, setActiveStage] = useState<"none" | "code" | "build" | "net" | "volume">("none");
 
   const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
+  
+  const sandboxRef = useRef<HTMLDivElement>(null);
+  const codeNodeRef = useRef<HTMLDivElement>(null);
+  const buildNodeRef = useRef<HTMLDivElement>(null);
+  const netNodeRef = useRef<HTMLDivElement>(null);
+  const volNodeRef = useRef<HTMLDivElement>(null);
   const packetRef = useRef<HTMLDivElement>(null);
 
+  const [coords, setCoords] = useState<CoordsState | null>(null);
+
+  const { setPlaying } = useAnimationStore();
   useAnimationControls(timeline);
+
+  const updateCoords = useCallback(() => {
+    const sandboxEl = sandboxRef.current;
+    const codeEl = codeNodeRef.current;
+    const buildEl = buildNodeRef.current;
+    const netEl = netNodeRef.current;
+    const volEl = volNodeRef.current;
+
+    if (sandboxEl && codeEl && buildEl && netEl && volEl) {
+      const sRect = sandboxEl.getBoundingClientRect();
+      const cRect = codeEl.getBoundingClientRect();
+      const bRect = buildEl.getBoundingClientRect();
+      const nRect = netEl.getBoundingClientRect();
+      const vRect = volEl.getBoundingClientRect();
+
+      setCoords({
+        codeCenter: {
+          x: (cRect.left + cRect.width / 2) - sRect.left,
+          y: (cRect.top + cRect.height / 2) - sRect.top
+        },
+        codeEdge: {
+          x: cRect.right - sRect.left,
+          y: (cRect.top + cRect.height / 2) - sRect.top
+        },
+        buildCenter: {
+          x: (bRect.left + bRect.width / 2) - sRect.left,
+          y: (bRect.top + bRect.height / 2) - sRect.top
+        },
+        buildEdgeLeft: {
+          x: bRect.left - sRect.left,
+          y: (bRect.top + bRect.height / 2) - sRect.top
+        },
+        buildEdgeRight: {
+          x: bRect.right - sRect.left,
+          y: (bRect.top + bRect.height / 2) - sRect.top
+        },
+        netCenter: {
+          x: (nRect.left + nRect.width / 2) - sRect.left,
+          y: (nRect.top + nRect.height / 2) - sRect.top
+        },
+        netEdgeLeft: {
+          x: nRect.left - sRect.left,
+          y: (nRect.top + nRect.height / 2) - sRect.top
+        },
+        netEdgeRight: {
+          x: nRect.right - sRect.left,
+          y: (nRect.top + nRect.height / 2) - sRect.top
+        },
+        volCenter: {
+          x: (vRect.left + vRect.width / 2) - sRect.left,
+          y: (vRect.top + vRect.height / 2) - sRect.top
+        },
+        volEdgeLeft: {
+          x: vRect.left - sRect.left,
+          y: (vRect.top + vRect.height / 2) - sRect.top
+        }
+      });
+    }
+  }, []);
 
   const handleReset = () => {
     setIsDeploying(false);
@@ -32,9 +114,40 @@ export default function CompleteSystemSimulation() {
       timeline.pause().progress(0);
     }
     gsap.set(packetRef.current, { opacity: 0, scale: 0, x: 0, y: 0 });
+    
+    // Defer coordinate computation so React DOM is fully mounted
+    setTimeout(updateCoords, 60);
   };
 
   const handleTriggerDeploy = () => {
+    updateCoords();
+
+    const sandboxEl = sandboxRef.current;
+    const codeEl = codeNodeRef.current;
+    const buildEl = buildNodeRef.current;
+    const netEl = netNodeRef.current;
+    const volEl = volNodeRef.current;
+
+    if (!sandboxEl || !codeEl || !buildEl || !netEl || !volEl) return;
+
+    const sRect = sandboxEl.getBoundingClientRect();
+    const cRect = codeEl.getBoundingClientRect();
+    const bRect = buildEl.getBoundingClientRect();
+    const nRect = netEl.getBoundingClientRect();
+    const vRect = volEl.getBoundingClientRect();
+
+    const codeX = (cRect.left + cRect.width / 2) - sRect.left;
+    const codeY = (cRect.top + cRect.height / 2) - sRect.top;
+
+    const buildX = (bRect.left + bRect.width / 2) - sRect.left;
+    const buildY = (bRect.top + bRect.height / 2) - sRect.top;
+
+    const netX = (nRect.left + nRect.width / 2) - sRect.left;
+    const netY = (nRect.top + nRect.height / 2) - sRect.top;
+
+    const volX = (vRect.left + vRect.width / 2) - sRect.left;
+    const volY = (vRect.top + vRect.height / 2) - sRect.top;
+
     setIsDeploying(true);
     setActiveStage("code");
     setTerminalLog("dev$ git commit -m 'feat: update styling' && git push\nRunning deployment sequence...");
@@ -44,21 +157,32 @@ export default function CompleteSystemSimulation() {
     }
 
     const tl = gsap.timeline({
+      onStart: () => setPlaying(true),
       onComplete: () => {
         setIsDeploying(false);
         setActiveStage("none");
+        setPlaying(false);
       }
     });
 
     setTimeline(tl);
 
-    // Initial packet reveal (x: 25, y: 155)
-    gsap.set(packetRef.current, { x: 25, y: 155, opacity: 0, scale: 0.8, backgroundColor: "#FAFAFA" });
+    // Initial packet reveal at center of code node
+    gsap.set(packetRef.current, { 
+      left: 0,
+      top: 0,
+      x: codeX, 
+      y: codeY, 
+      opacity: 0, 
+      scale: 0.8, 
+      backgroundColor: "#FAFAFA" 
+    });
 
-    // 1. Code compile
+    // 1. Code compiles -> Travels to Builder
     tl.to(packetRef.current, { opacity: 1, scale: 1, duration: 0.2 })
       .to(packetRef.current, {
-        x: 100,
+        x: buildX,
+        y: buildY,
         duration: 0.6,
         ease: "power1.inOut",
         onStart: () => {
@@ -66,9 +190,10 @@ export default function CompleteSystemSimulation() {
           setTerminalLog("builder$ docker build -t app:v2 .\nCompiling code layers inside isolated builder container...");
         }
       })
-      // 2. Network binding updates
+      // 2. Network binding updates -> Travels to Container
       .to(packetRef.current, {
-        x: 210,
+        x: netX,
+        y: netY,
         duration: 0.6,
         ease: "power1.inOut",
         onStart: () => {
@@ -76,9 +201,10 @@ export default function CompleteSystemSimulation() {
           setTerminalLog("daemon$ docker run -d --name app-container -p 8080:80 app:v2\nUpdating routing proxy bridges and network ports mappings...");
         }
       })
-      // 3. Volume mounting checks
+      // 3. Volume mounting checks -> Travels to Volume Node
       .to(packetRef.current, {
-        x: 320,
+        x: volX,
+        y: volY,
         duration: 0.6,
         ease: "power1.inOut",
         onStart: () => {
@@ -114,6 +240,14 @@ export default function CompleteSystemSimulation() {
     }
   };
 
+  useEffect(() => {
+    handleReset();
+    window.addEventListener("resize", updateCoords);
+    return () => {
+      window.removeEventListener("resize", updateCoords);
+    };
+  }, [useVolume]);
+
   return (
     <VisualCanvas
       objective="Orchestrate the complete stack: configure code updates, build triggers, network bindings, and volume persistency simultaneously."
@@ -139,17 +273,45 @@ export default function CompleteSystemSimulation() {
         {/* Full Architecture Schematic Canvas (Left) */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px] overflow-hidden">
           
-          <div className="w-full max-w-lg flex items-center justify-between gap-3 relative min-h-[220px]">
+          <div ref={sandboxRef} className="w-full max-w-lg flex items-center justify-between gap-3 relative min-h-[220px]">
             
-            {/* Visual pathway connector cables */}
+            {/* Visual pathway connector cables (Dynamically Calculated) */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 hidden sm:block">
-              {/* Code -> Build */}
-              <line x1={80} y1={110} x2={150} y2={110} stroke="#1f1f23" strokeWidth="1" strokeDasharray="3" />
-              {/* Build -> Net */}
-              <line x1={150} y1={110} x2={250} y2={110} stroke="#1f1f23" strokeWidth="1" strokeDasharray="3" />
-              {/* Net -> Volume */}
-              {useVolume && (
-                <line x1={250} y1={110} x2={360} y2={110} stroke="#1f1f23" strokeWidth="1" strokeDasharray="3" />
+              {coords && (
+                <>
+                  {/* Code -> Build */}
+                  <line 
+                    x1={coords.codeEdge.x} 
+                    y1={coords.codeEdge.y} 
+                    x2={coords.buildEdgeLeft.x} 
+                    y2={coords.buildEdgeLeft.y} 
+                    stroke="#1f1f23" 
+                    strokeWidth="1" 
+                    strokeDasharray="3" 
+                  />
+                  {/* Build -> Net */}
+                  <line 
+                    x1={coords.buildEdgeRight.x} 
+                    y1={coords.buildEdgeRight.y} 
+                    x2={coords.netEdgeLeft.x} 
+                    y2={coords.netEdgeLeft.y} 
+                    stroke="#1f1f23" 
+                    strokeWidth="1" 
+                    strokeDasharray="3" 
+                  />
+                  {/* Net -> Volume */}
+                  {useVolume && (
+                    <line 
+                      x1={coords.netEdgeRight.x} 
+                      y1={coords.netEdgeRight.y} 
+                      x2={coords.volEdgeLeft.x} 
+                      y2={coords.volEdgeLeft.y} 
+                      stroke="#1f1f23" 
+                      strokeWidth="1" 
+                      strokeDasharray="3" 
+                    />
+                  )}
+                </>
               )}
             </svg>
 
@@ -160,7 +322,7 @@ export default function CompleteSystemSimulation() {
             />
 
             {/* Col 1: Code Repository */}
-            <div className="w-24 shrink-0 text-center z-10">
+            <div ref={codeNodeRef} className="w-24 shrink-0 text-center z-10">
               <div className={cn(
                 "p-2.5 rounded-[12px] border bg-[#0d0d0e] flex flex-col items-center gap-1 transition-all duration-300",
                 activeStage === "code" ? "border-white text-white font-bold" : "border-zinc-850 text-zinc-550"
@@ -171,7 +333,7 @@ export default function CompleteSystemSimulation() {
             </div>
 
             {/* Col 2: Compiler Build Engine */}
-            <div className="w-24 shrink-0 text-center z-10">
+            <div ref={buildNodeRef} className="w-24 shrink-0 text-center z-10">
               <div className={cn(
                 "p-2.5 rounded-[12px] border bg-[#0d0d0e] flex flex-col items-center gap-1 transition-all duration-300",
                 activeStage === "build" ? "border-white text-white font-bold animate-pulse" : "border-zinc-850 text-zinc-550"
@@ -182,7 +344,7 @@ export default function CompleteSystemSimulation() {
             </div>
 
             {/* Col 3: Container runtime process attached to Net Bridge */}
-            <div className="w-24 shrink-0 text-center z-10">
+            <div ref={netNodeRef} className="w-24 shrink-0 text-center z-10">
               <div className={cn(
                 "p-2.5 rounded-[12px] border bg-[#0d0d0e] flex flex-col items-center gap-1 transition-all duration-300",
                 activeStage === "net" ? "border-white text-white font-bold" : "border-zinc-850 text-zinc-400"
@@ -194,7 +356,7 @@ export default function CompleteSystemSimulation() {
             </div>
 
             {/* Col 4: Volume mount storage block */}
-            <div className="w-24 shrink-0 text-center z-10">
+            <div ref={volNodeRef} className="w-24 shrink-0 text-center z-10">
               <div className={cn(
                 "p-2.5 rounded-[12px] border bg-[#0d0d0e] flex flex-col items-center gap-1 transition-all duration-500",
                 !useVolume 
@@ -246,7 +408,7 @@ export default function CompleteSystemSimulation() {
                   "px-2.5 py-1 rounded-[5px] text-[8px] font-bold border transition-all cursor-pointer",
                   useVolume
                     ? "bg-white text-black border-transparent"
-                    : "bg-transparent border-zinc-850 text-zinc-500 hover:text-zinc-300"
+                    : "bg-transparent border-zinc-850 text-zinc-500 hover:text-zinc-350"
                 )}
               >
                 {useVolume ? "MOUNTED" : "UNMOUNTED"}
