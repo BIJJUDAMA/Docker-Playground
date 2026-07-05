@@ -10,47 +10,114 @@ import { useAnimationStore } from "@/stores/animationStore";
 import { NodePrimitive } from "@/components/primitives/NodePrimitive";
 import { PacketPrimitive } from "@/components/primitives/PacketPrimitive";
 
+interface LineCoords {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
 export default function EnvironmentVariables() {
   const [configSynced, setConfigSynced] = useState<boolean>(true);
   const [animationState, setAnimationState] = useState<"idle" | "running" | "completed">("idle");
   const [terminalLog, setTerminalLog] = useState("Click 'Test Database Connection' in the sandbox panel to test.");
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const sandboxRef = useRef<HTMLDivElement>(null);
+  const apiNodeRef = useRef<HTMLDivElement>(null);
+  const dbNodeRef = useRef<HTMLDivElement>(null);
   const packetRef = useRef<HTMLDivElement>(null);
   const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
 
+  const [lineCoords, setLineCoords] = useState<LineCoords | null>(null);
+
+  const { setPlaying, setProgress } = useAnimationStore();
   useAnimationControls(timeline);
+
+  const updateCoords = useCallback(() => {
+    const sandboxEl = sandboxRef.current;
+    const apiEl = apiNodeRef.current;
+    const dbEl = dbNodeRef.current;
+
+    if (sandboxEl && apiEl && dbEl) {
+      const sandboxRect = sandboxEl.getBoundingClientRect();
+      const apiRect = apiEl.getBoundingClientRect();
+      const dbRect = dbEl.getBoundingClientRect();
+
+      setLineCoords({
+        x1: apiRect.right - sandboxRect.left,
+        y1: (apiRect.top + apiRect.height / 2) - sandboxRect.top,
+        x2: dbRect.left - sandboxRect.left,
+        y2: (dbRect.top + dbRect.height / 2) - sandboxRect.top
+      });
+    }
+  }, []);
 
   const handleReset = useCallback(() => {
     setAnimationState("idle");
     setTerminalLog("Click 'Test Database Connection' in the sandbox panel to test.");
 
-    useAnimationStore.getState().setPlaying(false);
-    useAnimationStore.getState().setProgress(0);
+    setPlaying(false);
+    setProgress(0);
 
     if (timeline) {
       timeline.pause().progress(0);
     }
 
-    gsap.set(packetRef.current, { scale: 0, opacity: 0, x: 0 });
-  }, [timeline]);
+    gsap.set(packetRef.current, { scale: 0, opacity: 0, x: 0, y: 0 });
+    
+    // Defer coordinate computation so React DOM is fully mounted
+    setTimeout(updateCoords, 60);
+  }, [timeline, setPlaying, setProgress, updateCoords]);
 
-  // Build the timeline whenever configSynced changes
+  // Build the timeline whenever configSynced changes or coords changes
   useEffect(() => {
     // Reset states first
     setAnimationState("idle");
     setTerminalLog("Click 'Test Database Connection' in the sandbox panel to test.");
-    gsap.set(packetRef.current, { scale: 0, opacity: 0, x: 0 });
+    gsap.set(packetRef.current, { scale: 0, opacity: 0, x: 0, y: 0 });
+
+    const sandboxEl = sandboxRef.current;
+    const apiEl = apiNodeRef.current;
+    const dbEl = dbNodeRef.current;
+
+    if (!sandboxEl || !apiEl || !dbEl) return;
+
+    const sandboxRect = sandboxEl.getBoundingClientRect();
+    const apiRect = apiEl.getBoundingClientRect();
+    const dbRect = dbEl.getBoundingClientRect();
+
+    const startX = (apiRect.left + apiRect.width / 2) - sandboxRect.left;
+    const startY = (apiRect.top + apiRect.height / 2) - sandboxRect.top;
+
+    const endX = (dbRect.left + dbRect.width / 2) - sandboxRect.left;
+    const endY = (dbRect.top + dbRect.height / 2) - sandboxRect.top;
+
+    const midX = startX + (endX - startX) / 2;
+    const midY = startY + (endY - startY) / 2;
 
     const tl = gsap.timeline({
       paused: true,
       onStart: () => {
         setAnimationState("running");
         setTerminalLog("node-api$ node connect.js\nReading process.env.DB_PASSWORD...\nConnecting to database...");
-        gsap.set(packetRef.current, { x: 0, opacity: 1, scale: 1, backgroundColor: "#FAFAFA" });
+        setPlaying(true);
+        
+        gsap.set(packetRef.current, { 
+          left: 0,
+          top: 0,
+          x: startX, 
+          y: startY,
+          opacity: 1, 
+          scale: 1, 
+          backgroundColor: "#FAFAFA" 
+        });
+      },
+      onUpdate: () => {
+        if (tl) setProgress(tl.progress() * 100);
       },
       onComplete: () => {
         setAnimationState("completed");
+        setPlaying(false);
         if (configSynced) {
           setTerminalLog("node-api$ node connect.js\nConnecting to db:5432...\n[SUCCESS] Authentication verified. Handshake completed.");
         } else {
@@ -61,13 +128,15 @@ export default function EnvironmentVariables() {
 
     if (configSynced) {
       tl.to(packetRef.current, {
-        x: 230,
+        x: endX,
+        y: endY,
         duration: 1.0,
         ease: "power2.inOut"
       });
     } else {
       tl.to(packetRef.current, {
-        x: 115,
+        x: midX,
+        y: midY,
         duration: 0.5,
         ease: "power1.out"
       })
@@ -77,7 +146,8 @@ export default function EnvironmentVariables() {
         duration: 0.15
       })
       .to(packetRef.current, {
-        x: 0,
+        x: startX,
+        y: startY,
         opacity: 0,
         duration: 0.5,
         ease: "power1.in"
@@ -89,11 +159,21 @@ export default function EnvironmentVariables() {
     return () => {
       tl.kill();
     };
-  }, [configSynced]);
+  }, [configSynced, setPlaying, setProgress]);
 
   const handleTest = () => {
-    useAnimationStore.getState().setPlaying(true);
+    if (timeline) {
+      timeline.play(0);
+    }
   };
+
+  useEffect(() => {
+    handleReset();
+    window.addEventListener("resize", updateCoords);
+    return () => {
+      window.removeEventListener("resize", updateCoords);
+    };
+  }, [configSynced]);
 
   return (
     <VisualCanvas
@@ -115,14 +195,27 @@ export default function EnvironmentVariables() {
         </div>
       }
     >
-      <div ref={containerRef} className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
+      <div className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
         
         {/* Environment variables mapping canvas (Left) */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px]">
+        <div 
+          ref={sandboxRef} 
+          className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px]"
+        >
           
-          {/* Connection vectors */}
+          {/* Connection vectors (Dynamically Calculated) */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-            <line x1={150} y1={135} x2={370} y2={135} stroke="#1a1a1e" strokeWidth="1.5" strokeDasharray="4 4" />
+            {lineCoords && (
+              <line 
+                x1={lineCoords.x1} 
+                y1={lineCoords.y1} 
+                x2={lineCoords.x2} 
+                y2={lineCoords.y2} 
+                stroke="#1a1a1e" 
+                strokeWidth="1.5" 
+                strokeDasharray="4 4" 
+              />
+            )}
           </svg>
 
           {/* Glowing packet */}
@@ -130,12 +223,12 @@ export default function EnvironmentVariables() {
             ref={packetRef}
             color="#FAFAFA"
             size={11}
-            className="top-[129px] left-[105px] z-20"
+            className="absolute z-25 pointer-events-none opacity-0 scale-0"
           />
 
           <div className="w-full max-w-sm h-56 relative flex justify-between items-center">
             {/* API container (Left) */}
-            <div className="w-36 flex flex-col gap-1.5">
+            <div ref={apiNodeRef} className="w-36 flex flex-col gap-1.5 z-10">
               <span className="text-[7px] text-zinc-500 uppercase font-bold text-center block mb-1">
                 API Service
               </span>
@@ -146,14 +239,14 @@ export default function EnvironmentVariables() {
                 subtitle="Port 3000"
                 className="py-3 px-3 rounded-[12px]"
               />
-              <div className="p-2.5 rounded-[12px] border border-zinc-850 bg-[#0d0d0e] font-mono text-[8px] text-zinc-400 select-text leading-normal">
-                <span className="text-zinc-500 block mb-0.5 font-bold uppercase text-[7px] select-none">env properties</span>
+              <div className="p-2.5 rounded-[12px] border border-zinc-850 bg-[#0d0d0e] font-mono text-[8px] text-zinc-405 select-text leading-normal">
+                <span className="text-zinc-550 block mb-0.5 font-bold uppercase text-[7px] select-none">env properties</span>
                 DB_PASS=secret
               </div>
             </div>
 
             {/* Database container (Right) */}
-            <div className="w-36 flex flex-col gap-1.5">
+            <div ref={dbNodeRef} className="w-36 flex flex-col gap-1.5 z-10">
               <span className="text-[7px] text-zinc-500 uppercase font-bold text-center block mb-1">
                 Database Server
               </span>
@@ -165,7 +258,7 @@ export default function EnvironmentVariables() {
                 className="py-3 px-3 rounded-[12px]"
               />
               <div className="p-2.5 rounded-[12px] border border-zinc-850 bg-[#0d0d0e] font-mono text-[8px] text-zinc-450 select-text leading-normal">
-                <span className="text-zinc-500 block mb-0.5 font-bold uppercase text-[7px] select-none">env properties</span>
+                <span className="text-zinc-550 block mb-0.5 font-bold uppercase text-[7px] select-none">env properties</span>
                 POSTGRES_PASS=<span className={cn(configSynced ? "text-zinc-300" : "text-red-500 font-bold")}>
                   {configSynced ? "secret" : "admin123"}
                 </span>
@@ -188,7 +281,7 @@ export default function EnvironmentVariables() {
           </div>
 
           {/* Sync toggle */}
-          <div className="p-3 rounded-[12px] border border-zinc-800/25 bg-[#0d0d0e] flex items-center justify-between select-none">
+          <div className="p-3 rounded-[12px] border border-zinc-800/25 bg-[#0d0d0e] flex items-center justify-between select-none font-sans">
             <div className="flex flex-col pr-2">
               <span className="text-[11px] font-bold text-zinc-200">
                 Synchronized Passwords
@@ -221,15 +314,15 @@ export default function EnvironmentVariables() {
           <button
             onClick={handleTest}
             disabled={animationState === "running"}
-            className="w-full py-2.5 rounded-[9px] text-xs font-bold bg-white text-black hover:bg-zinc-250 transition-all border-0 disabled:opacity-40 cursor-pointer"
+            className="w-full py-2.5 rounded-[9px] text-xs font-bold bg-white text-black hover:bg-zinc-250 transition-all border-0 disabled:opacity-40 cursor-pointer font-sans"
           >
             Test Database Connection
           </button>
 
           {/* Terminal log */}
-          <div className="rounded-[12px] border border-zinc-850 bg-[#0d0d0e] overflow-hidden flex flex-col min-h-[90px] shadow-sm select-text">
+          <div className="rounded-[12px] border border-zinc-850 bg-[#0d0d0e] overflow-hidden flex flex-col min-h-[90px] shadow-sm select-text font-sans">
             <div className="bg-[#1a1a1e] px-3.5 py-1.5 border-b border-zinc-850 flex items-center shrink-0 select-none">
-              <span className="text-[8px] font-mono text-zinc-500">console stdout</span>
+              <span className="text-[8px] font-mono text-zinc-550">console stdout</span>
             </div>
             <div className="p-3 font-mono text-[9px] leading-relaxed overflow-y-auto flex-1 select-text flex flex-col gap-0.5">
               {terminalLog.split("\n").map((line, i) => {
@@ -253,9 +346,9 @@ export default function EnvironmentVariables() {
           {/* Warnings context */}
           {animationState === "completed" && (
             <div className={cn(
-              "p-3 rounded-[12px] border text-[9.5px] leading-relaxed select-text",
+              "p-3 rounded-[12px] border text-[9.5px] leading-relaxed select-text font-sans",
               configSynced 
-                ? "border-zinc-800 bg-zinc-900/20 text-zinc-300" 
+                ? "border-zinc-800 bg-zinc-900/20 text-zinc-305" 
                 : "border-red-955/20 bg-red-950/5 text-red-400"
             )}>
               {configSynced ? (
