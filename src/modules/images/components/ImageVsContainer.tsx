@@ -1,196 +1,371 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { Layers, Box, Play, Trash2, Edit3, HelpCircle, ShieldCheck, CheckCircle, RotateCcw } from "lucide-react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
+import gsap from "gsap";
+import { cn, formatMarkdownNode } from "@/lib/utils";
+import { 
+  Layers, Box, Play, Trash2, Edit3, HelpCircle, 
+  ArrowRight, ShieldCheck, CheckCircle, RotateCcw,
+  Cpu, Network, Activity, HardDrive, Zap, Code
+} from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
+import { useAnimationStore } from "@/stores/animationStore";
+import { useAnimationControls } from "@/hooks/useAnimationControls";
 
-interface InstanceItem {
-  id: string;
+interface ContainerInstance {
+  id: "A" | "B" | "C";
   name: string;
-  status: "running" | "modified";
+  version: "v1" | "v2";
+  status: "pristine" | "modified";
 }
 
 export default function ImageVsContainer() {
-  const [instances, setInstances] = useState<InstanceItem[]>([
-    { id: "A", name: "container-A", status: "running" },
-    { id: "B", name: "container-B", status: "running" }
-  ]);
+  const [imageVersion, setImageVersion] = useState<"v1" | "v2">("v1");
+  const [instances, setInstances] = useState<Record<"A" | "B" | "C", ContainerInstance | null>>({
+    A: { id: "A", name: "container-A", version: "v1", status: "pristine" },
+    B: { id: "B", name: "container-B", version: "v1", status: "pristine" },
+    C: null
+  });
 
-  const handleRunAnother = () => {
-    if (instances.length >= 3) return;
-    
-    // Find missing letter (A, B, or C)
-    const activeIds = instances.map(i => i.id);
-    let nextId = "C";
-    if (!activeIds.includes("A")) nextId = "A";
-    else if (!activeIds.includes("B")) nextId = "B";
+  const [isAnimating, setIsAnimating] = useState(false);
 
-    setInstances(prev => [...prev, { id: nextId, name: `container-${nextId}`, status: "running" as const }].sort((a,b) => a.id.localeCompare(b.id)));
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const imageSeedRef = useRef<HTMLDivElement>(null);
+  
+  // Slot Refs for spawn flight animations
+  const slotRefs = {
+    A: useRef<HTMLDivElement>(null),
+    B: useRef<HTMLDivElement>(null),
+    C: useRef<HTMLDivElement>(null)
   };
 
-  const handleModifyInstance = (id: string) => {
-    setInstances(prev => prev.map(inst => 
-      inst.id === id ? { ...inst, status: "modified" as const } : inst
-    ));
-  };
+  // Flying energy dot ref
+  const pulseEnergyRef = useRef<HTMLDivElement>(null);
 
-  const handleDeleteInstance = (id: string) => {
-    setInstances(prev => prev.filter(inst => inst.id !== id));
-  };
+  const { setPlaying } = useAnimationStore();
+  const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
+  useAnimationControls(timeline);
 
   const handleReset = useCallback(() => {
-    setInstances([
-      { id: "A", name: "container-A", status: "running" as const },
-      { id: "B", name: "container-B", status: "running" as const }
-    ]);
-  }, []);
+    setImageVersion("v1");
+    setInstances({
+      A: { id: "A", name: "container-A", version: "v1", status: "pristine" },
+      B: { id: "B", name: "container-B", version: "v1", status: "pristine" },
+      C: null
+    });
+    setIsAnimating(false);
+    if (timeline) {
+      timeline.pause().progress(0);
+    }
+    gsap.set(pulseEnergyRef.current, { opacity: 0, scale: 0, x: 0, y: 0 });
+  }, [timeline]);
+
+  // Build node-app:v2
+  const handleBuildV2 = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+
+    const tl = gsap.timeline({
+      onStart: () => setPlaying(true),
+      onComplete: () => {
+        setPlaying(false);
+        setIsAnimating(false);
+        setImageVersion("v2");
+      }
+    });
+
+    setTimeline(tl);
+
+    // Pulse seed icon to represent rebuild morphing
+    tl.to(imageSeedRef.current, {
+      scale: 1.15,
+      borderColor: "#ffffff",
+      duration: 0.3,
+      yoyo: true,
+      repeat: 3
+    });
+  };
+
+  // Spawn instance (docker run)
+  const handleSpawnInstance = () => {
+    if (isAnimating) return;
+
+    // Find first empty slot
+    const targetSlot = !instances.A ? "A" : !instances.B ? "B" : !instances.C ? "C" : null;
+    if (!targetSlot) return;
+
+    setIsAnimating(true);
+
+    const tl = gsap.timeline({
+      onStart: () => setPlaying(true),
+      onComplete: () => {
+        setPlaying(false);
+        setIsAnimating(false);
+        setInstances(prev => ({
+          ...prev,
+          [targetSlot]: {
+            id: targetSlot,
+            name: `container-${targetSlot}`,
+            version: imageVersion,
+            status: "pristine"
+          }
+        }));
+        gsap.set(pulseEnergyRef.current, { opacity: 0, scale: 0 });
+      }
+    });
+
+    setTimeline(tl);
+
+    // Coordinate calculation: flight path from imageSeed center to targetSlot container
+    const xOffset = targetSlot === "A" ? -140 : targetSlot === "B" ? 0 : 140;
+    const yOffset = 180;
+
+    gsap.set(pulseEnergyRef.current, {
+      x: 0,
+      y: 0,
+      scale: 0.8,
+      opacity: 0
+    });
+
+    tl.to(pulseEnergyRef.current, {
+      opacity: 1,
+      scale: 1.3,
+      duration: 0.2
+    })
+    .to(pulseEnergyRef.current, {
+      x: xOffset,
+      y: yOffset,
+      duration: 0.8,
+      ease: "power2.inOut"
+    })
+    .to(pulseEnergyRef.current, {
+      scale: 0.5,
+      opacity: 0,
+      duration: 0.15
+    });
+  };
+
+  // Modify Config inside specific container slot
+  const handleModifyInstance = (slotId: "A" | "B" | "C") => {
+    if (!instances[slotId]) return;
+    setInstances(prev => {
+      const target = prev[slotId];
+      if (!target) return prev;
+      return {
+        ...prev,
+        [slotId]: { ...target, status: "modified" }
+      };
+    });
+  };
+
+  // Destroy Container Instance (Dissolve / Retract DNA strand)
+  const handleDeleteInstance = (slotId: "A" | "B" | "C") => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+
+    const tl = gsap.timeline({
+      onStart: () => setPlaying(true),
+      onComplete: () => {
+        setPlaying(false);
+        setIsAnimating(false);
+        setInstances(prev => ({
+          ...prev,
+          [slotId]: null
+        }));
+      }
+    });
+
+    setTimeline(tl);
+
+    const slotEl = slotRefs[slotId].current;
+    if (slotEl) {
+      tl.to(slotEl, {
+        scale: 0.8,
+        opacity: 0,
+        duration: 0.5,
+        ease: "power1.in"
+      });
+    }
+  };
 
   return (
     <VisualCanvas
       objective="Compare the structural differences between an immutable Image Blueprint and temporary, running Container Instances."
-      timeline={null}
+      timeline={timeline}
       onStepBack={handleReset}
-      zoomScale={0.88}
-      fullscreenZoomScale={1.2}
+      zoomScale={0.94}
+      fullscreenZoomScale={1.22}
       explanation={
         <div className="flex flex-col gap-2.5 font-sans">
           <div className="flex items-center gap-1.5 font-bold text-zinc-200">
             <HelpCircle className="w-4 h-4 text-zinc-450" />
-            Image vs Container
+            The Container Factory
           </div>
           <p>
-            An **Image** is a static, read-only package that contains your application code, system libraries, and runtimes. It is reusable and never changes.
+            An **Image** is a master seed. Triggering `docker run` manufactures new container process instances.
           </p>
           <p>
-            A **Container** is a running instance of that image. It adds a thin writable layer, runs isolated OS processes, and maintains private runtime configurations.
+            Each spawned container is born as an independent runtime organism containing isolated processes, network connections, and writable filesystem scopes, while the seed blueprint remains completely pristine.
           </p>
         </div>
       }
     >
-      <div className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
+      <div 
+        ref={canvasRef}
+        className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans relative"
+      >
         
-        {/* Sandbox Canvas (Left) */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[380px] overflow-hidden">
+        {/* Exploratory Sandbox Canvas (Left) */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[440px] overflow-hidden">
           
-          <div className="w-full max-w-lg flex flex-col sm:flex-row items-stretch justify-between gap-8 relative min-h-[300px]">
+          {/* Spawning flying energy node */}
+          <div 
+            ref={pulseEnergyRef}
+            className="absolute w-4 h-4 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,1)] pointer-events-none opacity-0 scale-0 z-30"
+          />
+
+          {/* Blueprint vs Instances layout wrapper */}
+          <div className="w-[480px] h-[360px] relative z-10 flex flex-col items-center justify-between py-2 shrink-0">
             
-            {/* Left: Stacked Image blueprint */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-3">
-              <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-zinc-550">
-                Shared Image Blueprint
+            {/* Top: The Image Repository Seed */}
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-[9px] font-mono font-bold uppercase tracking-widest text-zinc-550">
+                Image Blueprint Seed
               </span>
               
-              {/* Stacked tower of image layers */}
-              <div className="flex flex-col gap-1 w-full max-w-[150px] relative">
-                {/* Layer 3 */}
-                <div className="h-[36px] bg-[#1a1a20] border border-zinc-800 rounded-[8px] flex items-center justify-center px-3 relative shadow-sm">
-                  <span className="text-[8.5px] font-mono text-zinc-300 font-bold">App Code (Layer 3)</span>
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[6px] uppercase tracking-wider text-zinc-550 font-sans font-bold">R/O</span>
-                </div>
-                {/* Layer 2 */}
-                <div className="h-[36px] bg-[#16161c] border border-zinc-850 rounded-[8px] flex items-center justify-center px-3 relative shadow-sm">
-                  <span className="text-[8.5px] font-mono text-zinc-400">Node Modules (Layer 2)</span>
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[6px] uppercase tracking-wider text-zinc-550 font-sans font-bold">R/O</span>
-                </div>
-                {/* Layer 1 */}
-                <div className="h-[36px] bg-[#111116] border border-zinc-900 rounded-[8px] flex items-center justify-center px-3 relative shadow-sm">
-                  <span className="text-[8.5px] font-mono text-zinc-550">Base Linux OS (Layer 1)</span>
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[6px] uppercase tracking-wider text-zinc-650 font-sans font-bold">R/O</span>
-                </div>
-                
-                {/* Shared blueprint label */}
-                <div className="mt-2 text-center select-none">
-                  <span className="text-[9px] font-bold text-white font-mono flex items-center justify-center gap-1">
-                    <Layers className="w-3.5 h-3.5 text-zinc-400" />
-                    node-app:latest
-                  </span>
-                </div>
+              <div 
+                ref={imageSeedRef}
+                className="w-40 p-3 rounded-[16px] bg-[#16161a] border border-zinc-850 flex flex-col items-center gap-1.5 shadow-md relative transition-all duration-300"
+              >
+                <Layers className="w-6 h-6 text-zinc-400" />
+                <span className="text-[12px] font-extrabold text-white font-mono">
+                  node-app:{imageVersion}
+                </span>
+                <span className="text-[7.5px] uppercase tracking-wider font-sans font-bold text-zinc-550 border border-zinc-900 bg-black/40 px-1.5 py-0.5 rounded-[4px]">
+                  Read-Only Blueprint
+                </span>
               </div>
             </div>
 
-            {/* Middle connecting vector lines overlay */}
-            <div className="hidden sm:block absolute left-[150px] right-[160px] top-0 bottom-0 pointer-events-none z-0">
-              <svg className="w-full h-full">
-                {instances.map((c, i) => {
-                  const yTarget = (instances.length === 1) ? 116 : (instances.length === 2) ? (i === 0 ? 56 : 176) : (i === 0 ? 30 : i === 1 ? 116 : 202);
-                  return (
-                    <g key={c.id}>
-                      {/* Connection from top layer (App Code) */}
-                      <path 
-                        d={`M 10,98 C 50,98 50,${yTarget + 20} 90,${yTarget + 20}`} 
-                        fill="none" 
-                        stroke={c.status === "modified" ? "#ffffff" : "#1f1f23"} 
-                        strokeWidth={c.status === "modified" ? 1.5 : 1}
-                        strokeDasharray={c.status === "modified" ? "0" : "3"}
-                        className="transition-all duration-300"
-                      />
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
+            {/* Glowing origin connector lines (faint strands pulsing down to slots) */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+              {Object.keys(instances).map((slotKey) => {
+                const hasInstance = !!instances[slotKey as "A" | "B" | "C"];
+                const xTarget = slotKey === "A" ? 100 : slotKey === "B" ? 240 : 380;
+                
+                return (
+                  <path 
+                    key={slotKey}
+                    d={`M 240,110 C 240,170 ${xTarget},170 ${xTarget},260`}
+                    fill="none"
+                    stroke={hasInstance ? "#ffffff" : "#1b1b22"}
+                    strokeWidth={hasInstance ? 1.5 : 1}
+                    strokeDasharray={hasInstance ? "4 4" : "0"}
+                    className="transition-all duration-300 opacity-60"
+                  />
+                );
+              })}
+            </svg>
 
-            {/* Right: Container process replica stack */}
-            <div className="flex-1 flex flex-col items-center justify-center gap-3">
-              <span className="text-[8px] font-mono font-bold uppercase tracking-widest text-zinc-550">
-                Running Container Instances
-              </span>
+            {/* Bottom Row: 3 Container Slots */}
+            <div className="w-full flex justify-between gap-4 z-10">
               
-              <div className="flex flex-col gap-3 w-full max-w-[160px] justify-center min-h-[220px]">
-                {instances.length > 0 ? (
-                  instances.map((c) => {
-                    const isModified = c.status === "modified";
-                    return (
-                      <div 
-                        key={c.id} 
-                        className={cn(
-                          "rounded-[12px] border p-2.5 flex flex-col gap-1.5 transition-all duration-300 shadow-inner",
-                          isModified 
-                            ? "border-zinc-500 bg-[#0d0d0e]" 
-                            : "border-zinc-850 bg-[#0d0d0e]/60"
-                        )}
-                      >
-                        {/* Container name */}
-                        <div className="flex justify-between items-center border-b border-zinc-900/60 pb-1">
-                          <span className="text-[8.5px] font-bold text-white font-mono flex items-center gap-1">
-                            <Box className="w-3.5 h-3.5 text-zinc-400" />
-                            {c.name}
+              {(["A", "B", "C"] as const).map((slotId) => {
+                const inst = instances[slotId];
+                
+                return (
+                  <div 
+                    key={slotId}
+                    ref={slotRefs[slotId]}
+                    className="flex-1 min-h-[140px] flex flex-col transition-all duration-300"
+                  >
+                    {inst ? (
+                      <div className="flex-1 p-3.5 rounded-[16px] bg-[#0d0d0e] border border-zinc-850 flex flex-col justify-between shadow-lg relative animate-fadeIn">
+                        
+                        {/* Container tag header */}
+                        <div className="flex justify-between items-center border-b border-zinc-900 pb-1.5 mb-1.5 select-none">
+                          <span className="text-[10px] font-bold text-white font-mono flex items-center gap-1">
+                            <Box className="w-3.5 h-3.5 text-zinc-405" />
+                            {inst.name}
                           </span>
-                          <span className={cn(
-                            "text-[6.5px] font-bold uppercase tracking-wide",
-                            isModified ? "text-zinc-300 animate-pulse" : "text-zinc-650"
-                          )}>
-                            {isModified ? "Modified" : "Active"}
+                          <span className="text-[7.5px] font-mono text-zinc-550 border border-zinc-900 bg-black/45 px-1 rounded">
+                            {inst.version}
                           </span>
                         </div>
-                        
-                        {/* Visual stack representation */}
-                        <div className="flex flex-col gap-0.5">
+
+                        {/* Four modular active runtime icon pills */}
+                        <div className="flex flex-col gap-1.5 my-1 font-mono text-[8px] text-zinc-500">
+                          
+                          {/* Cpu */}
+                          <div className="flex items-center gap-1.5 select-none">
+                            <Cpu className="w-3.5 h-3.5 text-zinc-450 animate-pulse" />
+                            <span>PID 1 execution</span>
+                          </div>
+
+                          {/* Net */}
+                          <div className="flex items-center gap-1.5 select-none">
+                            <Network className="w-3.5 h-3.5 text-zinc-450 animate-pulse" />
+                            <span>eth0 adapter</span>
+                          </div>
+
+                          {/* RAM */}
+                          <div className="flex items-center gap-1.5 select-none">
+                            <Activity className="w-3.5 h-3.5 text-zinc-450 animate-pulse" />
+                            <span>cgroups RAM</span>
+                          </div>
+
                           {/* Writable layer */}
                           <div className={cn(
-                            "h-[12px] rounded-[3px] border flex items-center justify-center text-[6px] font-mono font-bold transition-all duration-300",
-                            isModified 
-                              ? "bg-white text-black border-transparent" 
-                              : "bg-[#0d0d0e]/80 border-dashed border-zinc-800 text-zinc-550"
+                            "flex items-center gap-1.5 px-1 py-0.5 rounded transition-all duration-300 border",
+                            inst.status === "modified"
+                              ? "bg-white text-black border-transparent font-bold"
+                              : "border-transparent text-zinc-500"
                           )}>
-                            {isModified ? "Writable layer: config.json (Overridden)" : "Writable layer (Empty)"}
+                            <HardDrive className="w-3.5 h-3.5 text-current" />
+                            <span>
+                              {inst.status === "modified" ? "Writable (Modified)" : "Writable layer"}
+                            </span>
                           </div>
-                          {/* Immutable reference layer block */}
-                          <div className="h-[12px] rounded-[3px] bg-[#1a1a20]/30 border border-zinc-900/50 flex items-center justify-center text-[6px] font-mono text-zinc-600">
-                            Shared Read-Only layers
-                          </div>
+
                         </div>
+
+                        {/* Inline custom Action controls per card */}
+                        <div className="flex gap-1.5 mt-2 border-t border-zinc-900 pt-2 select-none">
+                          <button
+                            onClick={() => handleModifyInstance(slotId)}
+                            disabled={inst.status === "modified" || isAnimating}
+                            className="flex-1 py-1 rounded bg-[#1a1a20] border border-zinc-850 hover:border-zinc-700 text-white text-[8.5px] disabled:opacity-40 cursor-pointer flex items-center justify-center gap-0.5 transition-colors"
+                            title="Modify local files"
+                          >
+                            <Edit3 className="w-2.5 h-2.5" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteInstance(slotId)}
+                            disabled={isAnimating}
+                            className="py-1 px-1.5 rounded bg-[#1a1a20] border border-zinc-850 hover:border-red-950/60 hover:text-red-400 text-zinc-450 text-[8.5px] cursor-pointer flex items-center justify-center transition-colors"
+                            title="Kill instance"
+                          >
+                            <Trash2 className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+
                       </div>
-                    );
-                  })
-                ) : (
-                  <div className="border border-dashed border-zinc-850 rounded-[12px] p-5 text-center text-[9px] text-zinc-650 italic bg-[#0d0d0e]/15 flex flex-col items-center justify-center gap-1.5">
-                    <Box className="w-5 h-5 text-zinc-750" />
-                    <span>No instances running</span>
+                    ) : (
+                      // Empty placeholder slot
+                      <div className="flex-1 border border-dashed border-zinc-850/40 rounded-[16px] bg-[#0d0d0e]/10 flex flex-col items-center justify-center p-4 text-center select-none">
+                        <span className="text-[7.5px] font-mono uppercase tracking-widest text-zinc-700 font-bold block mb-1">
+                          Empty Slot
+                        </span>
+                        <span className="text-[7px] text-zinc-750 max-w-[80px]">
+                          Available to spawn replica
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })}
+
             </div>
 
           </div>
@@ -201,71 +376,59 @@ export default function ImageVsContainer() {
         <div className="w-full md:w-80 p-5 rounded-[18px] border border-zinc-800/40 bg-[#121214] flex flex-col gap-4 relative shrink-0 shadow-sm animate-fadeIn">
           <div>
             <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-450 font-bold block mb-1">
-              Actions Sidebar
+              Factory Console
             </span>
-            <h4 className="text-sm font-extrabold text-white">Compare lifecycles</h4>
-            <p className="text-xs text-zinc-400 leading-relaxed font-normal mt-2 select-text font-sans">
-              Interact with the instances stack to trace how writes scale independently.
+            <h4 className="text-sm font-extrabold text-white">Spawning Controls</h4>
+            <p className="text-xs text-zinc-405 leading-relaxed font-normal mt-2 select-text">
+              Watch how Docker utilizes a single read-only seed blueprint to spawn independent running instances.
             </p>
           </div>
 
-          {/* List of active instances and controls */}
-          <div className="flex flex-col gap-2 flex-1 justify-center">
+          <div className="flex flex-col gap-2 flex-1 justify-center select-none">
             
+            {/* Spawn Instance button */}
             <button
-              onClick={handleRunAnother}
-              disabled={instances.length >= 3}
-              className="w-full py-2 rounded-[9px] text-[10px] font-bold bg-white text-black hover:bg-zinc-200 disabled:opacity-40 transition-all border-0 cursor-pointer flex items-center justify-center gap-1 select-none"
+              onClick={handleSpawnInstance}
+              disabled={(!instances.A && !instances.B && !instances.C) ? false : (!!instances.A && !!instances.B && !!instances.C) || isAnimating}
+              className="w-full py-2.5 rounded-[9px] text-[10px] font-bold bg-white text-black hover:bg-zinc-200 disabled:opacity-40 transition-all border-0 cursor-pointer flex items-center justify-center gap-1.5"
             >
-              <Play className="w-3 h-3 fill-black text-black" />
+              <Play className="w-3.5 h-3.5 fill-black text-black" />
               docker run (Spawn Instance)
             </button>
 
-            {/* Grid control rows per container */}
-            <div className="flex flex-col gap-1.5 mt-2">
-              {instances.map((c) => (
-                <div 
-                  key={c.id}
-                  className="p-2 rounded-[8px] border border-zinc-850 bg-[#0d0d0e] flex items-center justify-between font-mono text-[9px]"
-                >
-                  <span className="font-bold text-zinc-350">{c.name}</span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleModifyInstance(c.id)}
-                      disabled={c.status === "modified"}
-                      className="p-1 rounded bg-[#1a1a1e] border border-zinc-800 hover:border-zinc-600 text-zinc-300 disabled:opacity-40 cursor-pointer"
-                      title="Simulate modifying config files inside instance"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteInstance(c.id)}
-                      className="p-1 rounded bg-[#1a1a1e] border border-zinc-800 hover:border-red-900 text-zinc-300 cursor-pointer"
-                      title="Destroy container instance process bounds"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-          {/* Verify statement */}
-          <div className="p-3.5 rounded-[12px] bg-[#0d0d0e] border border-zinc-800/25 text-[9px] text-zinc-455 leading-relaxed font-sans">
-            <CheckCircle className="w-3.5 h-3.5 text-zinc-450 mb-1" />
-            Deleting container nodes instantly updates the process tree list. Image blueprint layers remain completely unaffected.
-          </div>
-
-          {instances.length > 0 && (
+            {/* Build node-app:v2 */}
             <button
-              onClick={handleReset}
-              className="w-full bg-[#1a1a1e] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none"
+              onClick={handleBuildV2}
+              disabled={imageVersion === "v2" || isAnimating}
+              className="w-full py-2.5 rounded-[9px] text-[10px] font-bold bg-[#1a1a20] border border-zinc-850 hover:border-zinc-700 text-white disabled:opacity-40 transition-all cursor-pointer flex items-center justify-center gap-1.5"
             >
-              Reset Sandbox
+              <Zap className="w-3.5 h-3.5" />
+              Build node-app:v2
             </button>
-          )}
+
+            {/* Verification Alert Info */}
+            <div className="p-3.5 rounded-[12px] bg-[#0d0d0e] border border-zinc-800/20 text-[9px] text-zinc-455 leading-relaxed select-text mt-2 flex flex-col gap-1.5 font-sans">
+              <ShieldCheck className="w-4 h-4 text-zinc-405 animate-pulse" />
+              {imageVersion === "v2" ? (
+                <span>
+                  {formatMarkdownNode(`**Versioned Seed Blueprint!** Building **v2** does not magically mutate v1 containers. Replicas are immutable snapshots. New runs spawn from **v2**, demonstrating true version isolation.`)}
+                </span>
+              ) : (
+                <span>
+                  Every spawned instance obtains its own independent write layer. Deleting or modifying a replica retracts its strand, leaving the master seed blueprint untouched.
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Reset simulation */}
+          <button
+            onClick={handleReset}
+            className="w-full bg-[#1a1a20] border border-zinc-850 text-zinc-400 hover:text-zinc-200 text-xs font-bold py-2 rounded-[9px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer select-none"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Reset Factory
+          </button>
 
         </div>
 

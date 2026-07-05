@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { PlusCircle, PlayCircle, PauseCircle, StopCircle, Trash2, ArrowRight, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VisualCanvas from "@/components/layout/VisualCanvas";
+import gsap from "gsap";
+import { useAnimationStore } from "@/stores/animationStore";
+import { useAnimationControls } from "@/hooks/useAnimationControls";
 
 interface LifecycleState {
   id: string;
@@ -59,13 +62,68 @@ const LIFECYCLE_STATES: LifecycleState[] = [
 
 export default function ContainerLifecycle() {
   const [activeStateId, setActiveStateId] = useState<string>("created");
+  const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
+
+  const { setPlaying, setProgress } = useAnimationStore();
+
+  useAnimationControls(timeline);
+
+  const handleReset = useCallback(() => {
+    setActiveStateId("created");
+    if (timeline) {
+      timeline.pause().progress(0);
+    }
+  }, [timeline]);
+
+  useEffect(() => {
+    const tl = gsap.timeline({
+      paused: true,
+      onStart: () => {
+        setPlaying(true);
+        setActiveStateId("created");
+      },
+      onUpdate: () => {
+        if (!tl) return;
+        const p = tl.progress() * 100;
+        setProgress(p);
+
+        // Map timeline time (total 9s) to states
+        const time = tl.time();
+        if (time < 1.5) {
+          setActiveStateId("created");
+        } else if (time < 3.5) {
+          setActiveStateId("running");
+        } else if (time < 5.5) {
+          setActiveStateId("paused");
+        } else if (time < 7.5) {
+          setActiveStateId("stopped");
+        } else {
+          setActiveStateId("removed");
+        }
+      },
+      onComplete: () => {
+        setPlaying(false);
+      }
+    });
+
+    setTimeline(tl);
+
+    // Timeline duration milestones:
+    // Created (1.5s) -> Running (2s) -> Paused (2s) -> Stopped (2s) -> Removed (1.5s)
+    tl.to({}, { duration: 9.0 });
+
+    return () => {
+      tl.kill();
+    };
+  }, [setPlaying, setProgress]);
 
   const activeState = LIFECYCLE_STATES.find(s => s.id === activeStateId) || LIFECYCLE_STATES[0];
 
   return (
     <VisualCanvas
       objective="Trace the core stages of the container process lifecycle and understand the CLI commands that trigger state transitions."
-      timeline={null}
+      timeline={timeline}
+      onStepBack={handleReset}
       explanation={
         <div className="flex flex-col gap-2.5 font-sans">
           <div className="flex items-center gap-1.5 font-bold text-zinc-200">
