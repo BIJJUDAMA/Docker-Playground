@@ -4,8 +4,6 @@ import React, { useState } from "react";
 import { PlusCircle, PlayCircle, PauseCircle, StopCircle, Trash2, ArrowRight, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import VisualCanvas from "@/components/layout/VisualCanvas";
-import { NodePrimitive } from "@/components/primitives/NodePrimitive";
-import EdgePrimitive from "@/components/primitives/EdgePrimitive";
 
 interface LifecycleState {
   id: string;
@@ -82,97 +80,44 @@ export default function ContainerLifecycle() {
     >
       <div className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
         
-        {/* State Machine Graph Canvas (Left) */}
+        {/* State Transition Pipeline (Left) */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px] overflow-hidden">
           
-          {/* Scalable Container to lock coordinates and prevent line drift */}
-          <div className="origin-center transition-all duration-305 flex items-center justify-center shrink-0 w-full scale-[0.8] xs:scale-[0.85] sm:scale-100 md:scale-[1.05] lg:scale-[1.15]">
-            <div className="w-[500px] h-[220px] relative shrink-0">
-              
-              {/* Connection vectors in background */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
-                {/* Created -> Running (x1: 164, y1: 42 -> x2: 182, y2: 42) */}
-                <EdgePrimitive x1={164} y1={42} x2={182} y2={42} curveType="straight" active={activeStateId === "created" || activeStateId === "running"} />
-                {/* Running -> Paused (x1: 326, y1: 42 -> x2: 344, y2: 42) */}
-                <EdgePrimitive x1={326} y1={42} x2={344} y2={42} curveType="straight" active={activeStateId === "running" || activeStateId === "paused"} />
-                {/* Running -> Stopped (x1: 254, y1: 64 -> x2: 254, y2: 160) */}
-                <EdgePrimitive x1={254} y1={64} x2={254} y2={160} curveType="straight" active={activeStateId === "running" || activeStateId === "stopped"} />
-                {/* Stopped -> Removed (x1: 182, y1: 182 -> x2: 164, y2: 182) */}
-                <EdgePrimitive x1={182} y1={182} x2={164} y2={182} curveType="straight" active={activeStateId === "stopped" || activeStateId === "removed"} />
-              </svg>
+          {/* Horizontal State Transition Pipeline */}
+          <div className="w-full max-w-lg flex items-center justify-between gap-1 sm:gap-2 mb-8 bg-[#0d0d0e]/40 p-3 rounded-[12px] border border-zinc-850 z-10 shrink-0">
+            {LIFECYCLE_STATES.map((state, index) => {
+              const isActive = activeStateId === state.id;
+              return (
+                <React.Fragment key={state.id}>
+                  {/* State Node Pill */}
+                  <button
+                    onClick={() => setActiveStateId(state.id)}
+                    className={cn(
+                      "flex-1 py-2 px-1 sm:px-3 rounded-[9px] border transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 select-none text-center",
+                      isActive
+                        ? "bg-white text-black border-transparent shadow-md"
+                        : "bg-[#0d0d0e] border-zinc-850 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                    )}
+                  >
+                    <span className={isActive ? "text-black" : "text-zinc-400"}>
+                      {state.icon}
+                    </span>
+                    <span className="text-[8px] sm:text-[9.5px] font-bold tracking-wide">
+                      {state.name}
+                    </span>
+                  </button>
 
-              {/* Absolute positioned state Nodes */}
-              
-              {/* 1. Created */}
-              <div 
-                onClick={() => setActiveStateId("created")}
-                className="absolute left-[20px] top-[20px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
-              >
-                <NodePrimitive
-                  label="Created"
-                  status={activeStateId === "created" ? "running" : "idle"}
-                  icon={<PlusCircle className="w-4 h-4 text-zinc-300" />}
-                  className="py-2 px-3 rounded-[9px]"
-                />
-              </div>
-
-              {/* 2. Running */}
-              <div 
-                onClick={() => setActiveStateId("running")}
-                className="absolute left-[182px] top-[20px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
-              >
-                <NodePrimitive
-                  label="Running"
-                  status={activeStateId === "running" ? "running" : "idle"}
-                  icon={<PlayCircle className="w-4 h-4 text-white" />}
-                  className="py-2 px-3 rounded-[9px]"
-                />
-              </div>
-
-              {/* 3. Paused */}
-              <div 
-                onClick={() => setActiveStateId("paused")}
-                className="absolute left-[344px] top-[20px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
-              >
-                <NodePrimitive
-                  label="Paused"
-                  status={activeStateId === "paused" ? "running" : "idle"}
-                  icon={<PauseCircle className="w-4 h-4 text-zinc-400" />}
-                  className="py-2 px-3 rounded-[9px]"
-                />
-              </div>
-
-              {/* 4. Stopped */}
-              <div 
-                onClick={() => setActiveStateId("stopped")}
-                className="absolute left-[182px] top-[160px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
-              >
-                <NodePrimitive
-                  label="Stopped"
-                  status={activeStateId === "stopped" ? "running" : "idle"}
-                  icon={<StopCircle className="w-4 h-4 text-zinc-500" />}
-                  className="py-2 px-3 rounded-[9px]"
-                />
-              </div>
-
-              {/* 5. Removed */}
-              <div 
-                onClick={() => setActiveStateId("removed")}
-                className="absolute left-[20px] top-[160px] w-36 cursor-pointer hover:scale-[1.01] transition-transform z-10"
-              >
-                <NodePrimitive
-                  label="Removed"
-                  status={activeStateId === "removed" ? "running" : "idle"}
-                  icon={<Trash2 className="w-4 h-4 text-zinc-650" />}
-                  className="py-2 px-3 rounded-[9px]"
-                 />
-              </div>
-
-            </div>
+                  {/* Arrow Connector (except last) */}
+                  {index < LIFECYCLE_STATES.length - 1 && (
+                    <ArrowRight className="w-3.5 h-3.5 text-zinc-800 shrink-0 select-none hidden xs:block" />
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
 
           {/* Living Container Simulator */}
-          <div className="mt-8 border-t border-zinc-800/40 pt-6 w-full flex flex-col items-center justify-center gap-2 select-text font-sans">
+          <div className="border-t border-zinc-850/40 pt-6 w-full flex flex-col items-center justify-center gap-2 select-text font-sans">
             <style>{`
               @keyframes barGrow {
                 0%, 100% { transform: scaleY(0.3); }
