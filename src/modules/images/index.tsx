@@ -3,7 +3,6 @@
 import React, { useEffect } from "react";
 import ExploreImage from "./components/ExploreImage";
 import CreateContainers from "./components/CreateContainers";
-import InsideContainer from "./components/InsideContainer";
 import ContainerLifecycle from "./components/ContainerLifecycle";
 import ImageVsContainer from "./components/ImageVsContainer";
 import BehindScenes from "./components/BehindScenes";
@@ -13,10 +12,9 @@ import { useAnimationStore } from "@/stores/animationStore";
 const STEPS = [
   { id: 0, label: "Explore the Image" },
   { id: 1, label: "Create Containers" },
-  { id: 2, label: "Inside a Container" },
-  { id: 3, label: "Container Lifecycle" },
-  { id: 4, label: "Image vs Container" },
-  { id: 5, label: "Behind the Scenes" }
+  { id: 2, label: "Container Lifecycle" },
+  { id: 3, label: "Image vs Container" },
+  { id: 4, label: "Behind the Scenes" }
 ];
 
 export default function ImagesModule() {
@@ -57,10 +55,9 @@ export default function ImagesModule() {
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         {activeStep === 0 && <ExploreImage />}
         {activeStep === 1 && <CreateContainers />}
-        {activeStep === 2 && <InsideContainer />}
-        {activeStep === 3 && <ContainerLifecycle />}
-        {activeStep === 4 && <ImageVsContainer />}
-        {activeStep === 5 && <BehindScenes />}
+        {activeStep === 2 && <ContainerLifecycle />}
+        {activeStep === 3 && <ImageVsContainer />}
+        {activeStep === 4 && <BehindScenes />}
       </div>
 
     </div>
