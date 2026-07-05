@@ -1,17 +1,24 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import gsap from "gsap";
 import { useAnimationControls } from "@/hooks/useAnimationControls";
 import { cn } from "@/lib/utils";
 import { HelpCircle, Play, RotateCcw, AlertTriangle, ShieldCheck, CheckCircle2, Server, Power } from "lucide-react";
 import VisualCanvas from "@/components/layout/VisualCanvas";
 import { NodePrimitive } from "@/components/primitives/NodePrimitive";
+import { useAnimationStore } from "@/stores/animationStore";
 
 interface Replica {
   id: number;
   name: string;
   status: "running" | "crashed" | "stopped";
+}
+
+interface CoordsState {
+  startCenter: { x: number; y: number };
+  startEdge: { x: number; y: number };
+  ends: Record<number, { centerX: number; centerY: number; edgeX: number; edgeY: number }>;
 }
 
 export default function DockerInProduction() {
@@ -27,9 +34,52 @@ export default function DockerInProduction() {
   const [timeline, setTimeline] = useState<gsap.core.Timeline | null>(null);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const packetRef = useRef<HTMLDivElement>(null);
+  const sandboxRef = useRef<HTMLDivElement>(null);
+  const loadBalancerRef = useRef<HTMLDivElement>(null);
+  
+  const replicaRefs = useRef<Record<number, HTMLDivElement | null>>({});
+  const packetRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
+  const [coords, setCoords] = useState<CoordsState | null>(null);
+
+  const { setPlaying } = useAnimationStore();
   useAnimationControls(timeline);
+
+  const updateCoords = useCallback(() => {
+    const sandboxEl = sandboxRef.current;
+    const lbEl = loadBalancerRef.current;
+    
+    if (sandboxEl && lbEl) {
+      const sandboxRect = sandboxEl.getBoundingClientRect();
+      const lbRect = lbEl.getBoundingClientRect();
+
+      const startCenterX = (lbRect.left + lbRect.width / 2) - sandboxRect.left;
+      const startCenterY = (lbRect.top + lbRect.height / 2) - sandboxRect.top;
+
+      const startEdgeX = lbRect.right - sandboxRect.left;
+      const startEdgeY = startCenterY;
+
+      const newEnds: Record<number, { centerX: number; centerY: number; edgeX: number; edgeY: number }> = {};
+      [1, 2, 3].forEach(id => {
+        const repEl = replicaRefs.current[id];
+        if (repEl) {
+          const repRect = repEl.getBoundingClientRect();
+          newEnds[id] = {
+            centerX: (repRect.left + repRect.width / 2) - sandboxRect.left,
+            centerY: (repRect.top + repRect.height / 2) - sandboxRect.top,
+            edgeX: repRect.left - sandboxRect.left,
+            edgeY: (repRect.top + repRect.height / 2) - sandboxRect.top
+          };
+        }
+      });
+
+      setCoords({
+        startCenter: { x: startCenterX, y: startCenterY },
+        startEdge: { x: startEdgeX, y: startEdgeY },
+        ends: newEnds
+      });
+    }
+  }, []);
 
   const handleReset = () => {
     setIsTrafficActive(false);
@@ -43,7 +93,16 @@ export default function DockerInProduction() {
     if (timeline) {
       timeline.pause().progress(0);
     }
-    gsap.set(packetRef.current, { opacity: 0, scale: 0, x: 0, y: 0, backgroundColor: "#FAFAFA" });
+
+    [1, 2, 3].forEach(id => {
+      const pEl = packetRefs.current[id];
+      if (pEl) {
+        gsap.set(pEl, { opacity: 0, scale: 0, x: 0, y: 0, backgroundColor: "#FAFAFA" });
+      }
+    });
+    
+    // Defer coordinate computation so React DOM is fully mounted
+    setTimeout(updateCoords, 60);
   };
 
   const handleCrashReplica = (id: number) => {
@@ -82,11 +141,25 @@ export default function DockerInProduction() {
       onStart: () => {
         setReplicas(prev => prev.map(r => r.id === id ? { ...r, status: "running" } : r));
         setTerminalLog("daemon$ [SUCCESS] app-replica-2 start success! Container health checks passing.");
+        setTimeout(updateCoords, 60);
       }
     });
   };
 
   const handleSendTraffic = () => {
+    // Refresh layout coordinates
+    updateCoords();
+
+    const sandboxEl = sandboxRef.current;
+    const lbEl = loadBalancerRef.current;
+    if (!sandboxEl || !lbEl) return;
+
+    const sandboxRect = sandboxEl.getBoundingClientRect();
+    const lbRect = lbEl.getBoundingClientRect();
+
+    const startX = (lbRect.left + lbRect.width / 2) - sandboxRect.left;
+    const startY = (lbRect.top + lbRect.height / 2) - sandboxRect.top;
+
     setIsTrafficActive(true);
     setTerminalLog("proxy$ Initiating workload request stream...");
 
@@ -95,8 +168,10 @@ export default function DockerInProduction() {
     }
 
     const tl = gsap.timeline({
+      onStart: () => setPlaying(true),
       onComplete: () => {
         setIsTrafficActive(false);
+        setPlaying(false);
       }
     });
 
@@ -110,47 +185,61 @@ export default function DockerInProduction() {
       return;
     }
 
-    // Sequence round robin packets
+    // Sequence round robin packets using dedicated packet elements to avoid overlaps
     activeReplicas.forEach((rep, idx) => {
-      // Coordinates setup:
-      // Load balancer is at x: 20, y: 70
-      // Replicas are stacked vertically on the right (x: 280):
-      // replica 1: y: 15
-      // replica 2: y: 70
-      // replica 3: y: 125
-      const yPos = rep.id === 1 ? 15 : rep.id === 2 ? 70 : 125;
+      const repEl = replicaRefs.current[rep.id];
+      const pEl = packetRefs.current[rep.id];
+      if (!repEl || !pEl) return;
+
+      const repRect = repEl.getBoundingClientRect();
+      const endX = (repRect.left + repRect.width / 2) - sandboxRect.left;
+      const endY = (repRect.top + repRect.height / 2) - sandboxRect.top;
+
+      const timeOffset = idx * 1.35;
 
       tl.call(() => {
         setTerminalLog(`proxy$ Forwarding HTTP request payload to healthy replica ${rep.name}...`);
-      })
-      .set(packetRef.current, { x: 20, y: 70, opacity: 0, scale: 0.8, backgroundColor: "#FAFAFA" }, `+=${idx * 0.1}`)
-      .to(packetRef.current, { opacity: 1, scale: 1, duration: 0.15 })
-      .to(packetRef.current, {
-        x: 280,
-        y: yPos,
+      }, undefined, timeOffset)
+      .set(pEl, { 
+        left: 0,
+        top: 0,
+        x: startX, 
+        y: startY, 
+        opacity: 0, 
+        scale: 0.8, 
+        backgroundColor: "#FAFAFA" 
+      }, timeOffset)
+      .to(pEl, { opacity: 1, scale: 1, duration: 0.15 }, timeOffset + 0.05)
+      .to(pEl, {
+        x: endX,
+        y: endY,
         duration: 0.6,
         ease: "power1.inOut"
-      })
-      .to(packetRef.current, {
+      }, timeOffset + 0.2)
+      .to(pEl, {
         backgroundColor: "#22c55e",
         duration: 0.15
-      })
-      .to(packetRef.current, {
-        x: 20,
-        y: 70,
+      }, timeOffset + 0.8)
+      .to(pEl, {
+        x: startX,
+        y: startY,
         duration: 0.5,
         ease: "power2.inOut"
-      })
-      .to(packetRef.current, { opacity: 0, scale: 0, duration: 0.1 });
+      }, timeOffset + 0.95)
+      .to(pEl, { opacity: 0, scale: 0, duration: 0.1 }, timeOffset + 1.45);
     });
 
     tl.call(() => {
       setTerminalLog("proxy$ [SUCCESS] All load balanced requests finished cleanly with 200 OK headers.");
-    });
+    }, undefined, activeReplicas.length * 1.35 + 0.1);
   };
 
   useEffect(() => {
     handleReset();
+    window.addEventListener("resize", updateCoords);
+    return () => {
+      window.removeEventListener("resize", updateCoords);
+    };
   }, [scale]);
 
   return (
@@ -173,40 +262,47 @@ export default function DockerInProduction() {
         </div>
       }
     >
-      <div ref={containerRef} className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
+      <div className="w-full flex-1 flex flex-col md:flex-row items-stretch justify-start gap-6 min-h-0 select-none font-sans">
         
         {/* Sandbox Canvas (Left) */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 border border-zinc-800/40 bg-[#121214] rounded-[18px] relative shadow-sm min-h-[350px] overflow-hidden">
           
-          <div className="w-full max-w-sm flex items-center justify-between gap-4 relative min-h-[220px]">
+          <div ref={sandboxRef} className="w-full max-w-sm flex items-center justify-between gap-4 relative min-h-[220px]">
             
-            {/* Pathway wire graphics */}
+            {/* Pathway wire graphics (Dynamically Calculated) */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 hidden sm:block">
-              {Array.from({ length: scale }).map((_, i) => {
-                const targetY = i === 0 ? 35 : i === 1 ? 90 : 145;
+              {coords && replicas.map((rep) => {
+                const isActive = rep.id <= scale;
+                const end = coords.ends[rep.id];
+                if (!isActive || !end) return null;
+
                 return (
                   <line
-                    key={i}
-                    x1={80}
-                    y1={90}
-                    x2={260}
-                    y2={targetY}
+                    key={rep.id}
+                    x1={coords.startEdge.x}
+                    y1={coords.startEdge.y}
+                    x2={end.edgeX}
+                    y2={end.edgeY}
                     stroke="#1f1f23"
                     strokeWidth="1"
                     strokeDasharray="3"
+                    className="transition-all duration-300"
                   />
                 );
               })}
             </svg>
 
-            {/* Load balancer request packet */}
-            <div 
-              ref={packetRef}
-              className="absolute w-2.5 h-2.5 rounded-full z-20 opacity-0 scale-0 shadow-[0_0_8px_currentColor]"
-            />
+            {/* Load balancer request packets (one per replica to avoid GSAP target collision) */}
+            {[1, 2, 3].map((id) => (
+              <div 
+                key={id}
+                ref={el => { packetRefs.current[id] = el; }}
+                className="absolute w-2.5 h-2.5 rounded-full z-20 opacity-0 scale-0 shadow-[0_0_8px_currentColor]"
+              />
+            ))}
 
             {/* Left: Load Balancer node */}
-            <div className="w-24 z-10">
+            <div ref={loadBalancerRef} className="w-28 z-10">
               <div className="py-2.5 px-3 rounded-[9px] border border-zinc-850 bg-[#0d0d0e] text-center flex flex-col items-center justify-center gap-1.5 shadow-inner">
                 <Server className="w-5 h-5 text-zinc-550 shrink-0" />
                 <span className="text-[7.5px] font-mono font-bold uppercase tracking-wider text-zinc-200">Load Balancer</span>
@@ -222,7 +318,12 @@ export default function DockerInProduction() {
                 if (!isActive) return null;
 
                 return (
-                  <div key={rep.id} id={`replica-node-${rep.id}`} className="transition-all duration-300">
+                  <div 
+                    key={rep.id} 
+                    id={`replica-node-${rep.id}`} 
+                    ref={el => { replicaRefs.current[rep.id] = el; }}
+                    className="transition-all duration-305"
+                  >
                     <NodePrimitive
                       label={rep.name}
                       status={isCrashed ? "crashed" : "running"}
@@ -332,7 +433,7 @@ export default function DockerInProduction() {
 
           {replicas[1].status === "running" && terminalLog.includes("Reinstantiating container") && (
             <div className="p-3.5 rounded-[12px] bg-white/5 border border-white/10 text-[8.5px] text-zinc-305 leading-normal flex items-start gap-2 animate-fadeIn select-text font-sans">
-              <CheckCircle2 className="w-4 h-4 text-zinc-405 shrink-0 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 text-zinc-450 shrink-0 mt-0.5" />
               <span>
                 **HEALED SUCCESSFULLY!** Healthy app-replica-2 node started and re-registered behind proxy endpoint routing automatically.
               </span>
